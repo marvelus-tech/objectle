@@ -140,15 +140,36 @@ npm run build
 npx wrangler pages deploy dist
 ```
 
-### 2. GitHub Pages (Demo/Static)
+### 2. GitHub Pages (Demo/Static with Fallback)
 
-GitHub Pages deployment is available for testing and demonstration without requiring Cloudflare secrets.
+GitHub Pages deployment works **without requiring a Worker**. The frontend includes a local challenges catalog that provides full gameplay offline.
 
 **Setup:**
 1. Enable GitHub Pages in repository settings (Source: GitHub Actions)
 2. Push to main branch. Automatic deployment to `marvelus-tech.github.io/objectle/`
 
-The GitHub Pages build automatically configures the correct base path and API endpoints.
+**How it works:**
+- On GitHub Pages (or when Worker is unavailable), the app falls back to a local catalog
+- Daily challenges, guess checking, and scoring work entirely client-side
+- Uses localStorage for guess history and state persistence
+- No server required, fully playable as a static site
+
+### Worker Deployment (Optional)
+
+The Worker provides server-side scoring, leaderboards, and persistent state. Deploy it for full features:
+
+1. Update `wrangler.jsonc` with your D1 database ID
+2. Deploy:
+```bash
+npm run worker:deploy
+```
+
+The Worker will be available at `objectle.yourusername.workers.dev`.
+
+**Note:** The frontend tries the Worker first, then gracefully falls back to local mode if unavailable. This means:
+- GitHub Pages works immediately without any Worker
+- When you deploy a Worker, update `app/src/lib/api.ts` to point to your Worker URL
+- Both paths coexist: Worker for full features, local fallback for demos
 
 ### Environment Variables
 
