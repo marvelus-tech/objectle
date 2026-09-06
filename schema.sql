@@ -48,7 +48,7 @@ CREATE INDEX IF NOT EXISTS idx_guesses_player_date ON guesses(player_id, date);
 CREATE INDEX IF NOT EXISTS idx_daily_challenges_date ON daily_challenges(date);
 CREATE INDEX IF NOT EXISTS idx_synonyms_lookup ON synonyms(synonym);
 
--- Insert initial synonyms
+-- Insert initial synonyms (expanded for all objects)
 INSERT OR IGNORE INTO synonyms (canonical, synonym) VALUES
   ('bicycle', 'bike'),
   ('bicycle', 'cycle'),
@@ -56,10 +56,31 @@ INSERT OR IGNORE INTO synonyms (canonical, synonym) VALUES
   ('lamp', 'light'),
   ('mug', 'cup'),
   ('mug', 'coffee cup'),
-  ('table', 'desk');
+  ('table', 'desk'),
+  ('phone', 'cellphone'),
+  ('phone', 'mobile'),
+  ('phone', 'smartphone'),
+  ('car', 'automobile'),
+  ('car', 'vehicle'),
+  ('bowl', 'dish'),
+  ('spoon', 'tablespoon'),
+  ('bench', 'seat'),
+  ('bench', 'seating'),
+  ('hammer', 'mallet'),
+  ('key', 'housekey'),
+  ('key', 'door key');
 
--- Insert initial daily challenges (3 objects for MVP)
+-- Insert initial daily challenges (12 objects for rolling week+)
 INSERT OR IGNORE INTO daily_challenges (date, object_key, object_name, category, material, scale) VALUES
   ('2026-09-06', 'daily/obj_chair_001', 'chair', 'furniture', 'wood', 'medium'),
   ('2026-09-07', 'daily/obj_bicycle_001', 'bicycle', 'vehicle', 'metal', 'large'),
-  ('2026-09-08', 'daily/obj_mug_001', 'mug', 'kitchenware', 'ceramic', 'small');
+  ('2026-09-08', 'daily/obj_mug_001', 'mug', 'kitchenware', 'ceramic', 'small'),
+  ('2026-09-09', 'daily/obj_lamp_001', 'lamp', 'furniture', 'metal', 'medium'),
+  ('2026-09-10', 'daily/obj_hammer_001', 'hammer', 'tool', 'metal', 'small'),
+  ('2026-09-11', 'daily/obj_table_001', 'table', 'furniture', 'wood', 'large'),
+  ('2026-09-12', 'daily/obj_phone_001', 'phone', 'electronics', 'metal', 'small'),
+  ('2026-09-13', 'daily/obj_bowl_001', 'bowl', 'kitchenware', 'ceramic', 'small'),
+  ('2026-09-14', 'daily/obj_car_001', 'car', 'vehicle', 'metal', 'large'),
+  ('2026-09-15', 'daily/obj_spoon_001', 'spoon', 'kitchenware', 'metal', 'small'),
+  ('2026-09-16', 'daily/obj_bench_001', 'bench', 'furniture', 'wood', 'large'),
+  ('2026-09-17', 'daily/obj_key_001', 'key', 'tool', 'metal', 'small');

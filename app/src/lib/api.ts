@@ -2,7 +2,23 @@
  * API client for Objectle Worker
  */
 
-const API_BASE = import.meta.env.DEV ? '/api' : 'https://objectle-worker.marvelus-tech.workers.dev/api';
+// Support multiple deployment paths
+const getAPIBase = () => {
+  if (import.meta.env.DEV) {
+    return '/api';
+  }
+  
+  // Check if we're on GitHub Pages
+  if (window.location.hostname.includes('github.io')) {
+    // Use demo Worker endpoint for GitHub Pages
+    return 'https://objectle-worker-demo.marvelus-tech.workers.dev/api';
+  }
+  
+  // Default to Cloudflare Pages Worker
+  return 'https://objectle-worker.marvelus-tech.workers.dev/api';
+};
+
+const API_BASE = getAPIBase();
 
 export interface DailyChallengeResponse {
   date: string;

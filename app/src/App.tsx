@@ -5,8 +5,11 @@ import GuessInput from './components/GuessInput';
 import GuessHistory from './components/GuessHistory';
 import GameOver from './components/GameOver';
 import ShareModal from './components/ShareModal';
+import AgentPanel from './components/AgentPanel';
+import ToolLog from './components/ToolLog';
 import { useGameStore } from './lib/store';
 import { api } from './lib/api';
+import { registerWebMCPTools } from './lib/webmcp';
 
 export default function App() {
   const initGame = useGameStore(state => state.initGame);
@@ -16,9 +19,10 @@ export default function App() {
   const setLoading = useGameStore(state => state.setLoading);
   const setError = useGameStore(state => state.setError);
   
-  // Load daily challenge on mount
+  // Load daily challenge and register WebMCP tools on mount
   useEffect(() => {
     loadDailyChallenge();
+    registerWebMCPTools();
   }, []);
   
   const loadDailyChallenge = async () => {
@@ -90,6 +94,8 @@ export default function App() {
       </main>
       
       <ShareModal />
+      <AgentPanel />
+      <ToolLog />
       
       <footer style={styles.footer}>
         <p style={styles.footerText}>

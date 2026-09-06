@@ -107,23 +107,34 @@ The MCP server requires the Worker to be running. Configure it in your MCP clien
 
 ## Deployment
 
-### Deploy the Worker
+Objectle supports two deployment paths:
 
-1. Update `wrangler.jsonc` with your production D1 database ID
-2. Deploy:
-```bash
-npm run worker:deploy
-```
-
-### Deploy the Frontend (Cloudflare Pages)
+### 1. Cloudflare Pages (Primary)
 
 The repository includes a GitHub Actions workflow that automatically deploys to Cloudflare Pages on push to `main`.
+
+**Setup:**
+1. Create a Cloudflare API Token with "Cloudflare Pages" permissions
+2. Add GitHub secrets:
+   - `CLOUDFLARE_API_TOKEN`: Your API token
+   - `CLOUDFLARE_ACCOUNT_ID`: Your Cloudflare account ID
+3. Push to main branch. Automatic deployment to `objectle.pages.dev`
 
 **Manual deployment:**
 ```bash
 npm run build
 npx wrangler pages deploy dist
 ```
+
+### 2. GitHub Pages (Demo/Static)
+
+GitHub Pages deployment is available for testing and demonstration without requiring Cloudflare secrets.
+
+**Setup:**
+1. Enable GitHub Pages in repository settings (Source: GitHub Actions)
+2. Push to main branch. Automatic deployment to `marvelus-tech.github.io/objectle/`
+
+The GitHub Pages build automatically configures the correct base path and API endpoints.
 
 ### Environment Variables
 
