@@ -63,7 +63,7 @@ function generateShareText(date: string, guesses: any[], won: boolean): string {
     }
   });
   
-  text += '\nhttps://objectle.pages.dev';
+  text += '\nhttps://marvelus-tech.github.io/objectle/';
   
   return text;
 }

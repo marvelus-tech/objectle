@@ -154,7 +154,7 @@ Objectle 2026-09-06 2/6
 🟥🟩🟩
 🟩🟩🟩
 
-https://objectle.pages.dev
+https://marvelus-tech.github.io/objectle/
 ```
 
 Green squares indicate matching facets, red squares indicate mismatches.

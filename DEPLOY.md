@@ -99,7 +99,7 @@ In Cloudflare Pages settings:
 3. Follow DNS setup instructions
 
 Your site will be available at:
-- Default: `https://objectle.pages.dev`
+- Default: `https://marvelus-tech.github.io/objectle/`
 - Custom: `https://objectle.yourdomain.com`
 
 ## Step 6: Set Up MCP Server for Agents (Optional)

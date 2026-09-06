@@ -220,7 +220,7 @@ Add this to your MCP client configuration file (e.g., `claude_desktop_config.jso
       "command": "node",
       "args": ["/path/to/objectle/worker/mcp-server.js"],
       "env": {
-        "WORKER_API": "http://localhost:8787/api"
+        "WORKER_API": "https://objectle-worker-demo.marvelus.workers.dev/api"
       }
     }
   }
@@ -235,7 +235,7 @@ For production (deployed Worker):
       "command": "node",
       "args": ["/path/to/objectle/worker/mcp-server.js"],
       "env": {
-        "WORKER_API": "https://objectle-worker.yourusername.workers.dev/api"
+        "WORKER_API": "https://objectle-worker-demo.marvelus.workers.dev/api"
       }
     }
   }
@@ -280,7 +280,7 @@ Objectle 2026-09-06 3/6
 🟥🟩🟩
 🟩🟩🟩
 
-https://objectle.pages.dev
+https://marvelus-tech.github.io/objectle/
 ```
 
 Each row represents a guess. Each symbol represents a facet:

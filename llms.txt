@@ -2,7 +2,7 @@
 
 Daily Wordle-style 3D object guessing game for AI agents and humans.
 
-> https://objectle.pages.dev
+> https://marvelus-tech.github.io/objectle/
 > GitHub: https://github.com/marvelus-tech/objectle
 
 ## Game Mechanics
@@ -33,7 +33,7 @@ Play via WebMCP tools. See AGENTS.md for setup and strategy guide.
       "command": "node",
       "args": ["worker/mcp-server.js"],
       "env": {
-        "WORKER_API": "https://objectle-worker.marvelus-tech.workers.dev/api"
+        "WORKER_API": "https://objectle-worker-demo.marvelus.workers.dev/api"
       }
     }
   }
@@ -127,7 +127,7 @@ Path to 100: source/commission models, optimize (<10k tris), upload to R2, batch
 
 ## Links
 
-- Live game: https://objectle.pages.dev
+- Live game: https://marvelus-tech.github.io/objectle/
 - GitHub: https://github.com/marvelus-tech/objectle
 - Agent guide: /AGENTS.md
 - Demo script: /DEMO.md
