@@ -1,0 +1,25 @@
+{
+  "name": "objectle-worker",
+  "main": "worker/index.ts",
+  "compatibility_date": "2024-11-01",
+  "node_compat": true,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "objectle-db",
+      "database_id": "preview-database-id"
+    }
+  ],
+  "vars": {
+    "ENVIRONMENT": "production"
+  },
+  // MCP configuration for WebMCP tools
+  "mcp": {
+    "servers": {
+      "objectle-viewer": {
+        "command": "node",
+        "args": ["worker/mcp-server.js"]
+      }
+    }
+  }
+}
