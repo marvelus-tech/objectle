@@ -14,8 +14,6 @@ export default function ToolLog() {
     return unsubscribe;
   }, []);
   
-  if (executions.length === 0) return null;
-  
   return (
     <div style={styles.container}>
       <div style={styles.header} onClick={() => setExpanded(!expanded)}>
@@ -27,7 +25,15 @@ export default function ToolLog() {
       
       {expanded && (
         <div style={styles.logContainer}>
-          {executions.slice().reverse().map((exec) => (
+          {executions.length === 0 ? (
+            <div style={styles.emptyState}>
+              <p style={styles.emptyText}>Waiting for an agent…</p>
+              <p style={styles.emptySubtext}>
+                Tool calls will appear here as agents play
+              </p>
+            </div>
+          ) : (
+            executions.slice().reverse().map((exec) => (
             <div
               key={exec.id}
               style={{
@@ -61,7 +67,8 @@ export default function ToolLog() {
                 )}
               </div>
             </div>
-          ))}
+          ))
+          )}
         </div>
       )}
     </div>
@@ -70,16 +77,10 @@ export default function ToolLog() {
 
 const styles: Record<string, React.CSSProperties> = {
   container: {
-    position: 'fixed',
-    top: 80,
-    right: 20,
-    width: '350px',
-    maxHeight: '500px',
     background: '#fff',
     borderRadius: '8px',
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
     border: '2px solid #4a90e2',
-    zIndex: 900,
     overflow: 'hidden',
   },
   header: {
@@ -100,7 +101,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '12px',
   },
   logContainer: {
-    maxHeight: '450px',
+    maxHeight: '400px',
     overflowY: 'auto',
     padding: '12px',
   },
@@ -146,5 +147,20 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#888',
     fontStyle: 'italic',
     marginTop: '4px',
+  },
+  emptyState: {
+    textAlign: 'center',
+    padding: '2rem 1rem',
+  },
+  emptyText: {
+    fontSize: '14px',
+    fontWeight: 600,
+    color: '#666',
+    margin: '0 0 0.5rem 0',
+  },
+  emptySubtext: {
+    fontSize: '12px',
+    color: '#888',
+    margin: 0,
   },
 };

@@ -132,7 +132,7 @@ The repository includes a GitHub Actions workflow that automatically deploys to 
 2. Add GitHub secrets:
    - `CLOUDFLARE_API_TOKEN`: Your API token
    - `CLOUDFLARE_ACCOUNT_ID`: Your Cloudflare account ID
-3. Push to main branch. Automatic deployment to `objectle.pages.dev`
+3. Push to main branch. Automatic deployment via GitHub Actions to GitHub Pages
 
 **Manual deployment:**
 ```bash

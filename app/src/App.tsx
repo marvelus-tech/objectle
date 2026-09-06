@@ -7,6 +7,8 @@ import GameOver from './components/GameOver';
 import ShareModal from './components/ShareModal';
 import AgentPanel from './components/AgentPanel';
 import ToolLog from './components/ToolLog';
+import PassCard from './components/PassCard';
+import ProgressionChrome from './components/ProgressionChrome';
 import { useGameStore } from './lib/store';
 import { api } from './lib/api';
 import { registerWebMCPTools } from './lib/webmcp';
@@ -73,29 +75,40 @@ export default function App() {
     <div style={styles.app}>
       <header style={styles.header}>
         <h1 style={styles.title}>Objectle</h1>
-        <p style={styles.subtitle}>Daily 3D Object Guessing Game</p>
+        <p style={styles.subtitle}>Daily 3D Object Guessing Game — Dual-Watch Theater</p>
       </header>
       
       <main style={styles.main}>
-        <div style={styles.viewerSection}>
-          <div style={styles.viewer}>
-            <ObjectViewer objectKey={objectKey} />
+        {/* Center Stage: Viewer + Progression */}
+        <div style={styles.stageColumn}>
+          <div style={styles.viewerWrapper}>
+            <div style={styles.viewer}>
+              <ObjectViewer objectKey={objectKey} />
+            </div>
+            <div style={styles.controls}>
+              <ViewerControls />
+            </div>
           </div>
-          <div style={styles.controls}>
-            <ViewerControls />
-          </div>
+          <ProgressionChrome />
         </div>
         
-        <div style={styles.gameSection}>
-          <GameOver />
-          <GuessInput />
-          <GuessHistory />
+        {/* Side Rail: Tool Timeline + Game */}
+        <div style={styles.sideColumn}>
+          <div style={styles.toolLogSection}>
+            <ToolLog />
+          </div>
+          
+          <div style={styles.gameSection}>
+            <PassCard />
+            <GameOver />
+            <GuessInput />
+            <GuessHistory />
+          </div>
         </div>
       </main>
       
       <ShareModal />
       <AgentPanel />
-      <ToolLog />
       
       <footer style={styles.footer}>
         <p style={styles.footerText}>
@@ -122,32 +135,37 @@ const styles: Record<string, React.CSSProperties> = {
     background: '#f8f9fa',
   },
   header: {
-    padding: '2rem 1rem',
+    padding: '1.5rem 1rem',
     textAlign: 'center',
     background: '#fff',
     borderBottom: '2px solid #e0e0e0',
   },
   title: {
-    fontSize: '36px',
+    fontSize: '32px',
     fontWeight: 700,
     color: '#333',
-    marginBottom: '0.5rem',
+    marginBottom: '0.25rem',
   },
   subtitle: {
-    fontSize: '16px',
+    fontSize: '14px',
     color: '#666',
   },
   main: {
     flex: 1,
     display: 'grid',
-    gridTemplateColumns: '2fr 1fr',
+    gridTemplateColumns: '1.5fr 1fr',
     gap: '2rem',
     padding: '2rem',
-    maxWidth: '1400px',
+    maxWidth: '1600px',
     width: '100%',
     margin: '0 auto',
   },
-  viewerSection: {
+  stageColumn: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1rem',
+  },
+  viewerWrapper: {
     display: 'flex',
     flexDirection: 'column',
     gap: '1rem',
@@ -158,9 +176,20 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '12px',
     overflow: 'hidden',
     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+    background: '#fff',
   },
   controls: {
     width: '100%',
+  },
+  sideColumn: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1.5rem',
+  },
+  toolLogSection: {
+    position: 'sticky',
+    top: '1rem',
+    zIndex: 10,
   },
   gameSection: {
     display: 'flex',
