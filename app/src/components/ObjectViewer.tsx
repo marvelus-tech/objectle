@@ -31,13 +31,48 @@ function SceneObject({ objectKey }: { objectKey: string }) {
   // For MVP: use procedural geometry based on objectKey
   // In production, this would load actual GLTF models from R2
   const getGeometry = () => {
-    if (objectKey.includes('chair')) {
+    const key = objectKey.toLowerCase();
+    
+    // Furniture
+    if (key.includes('chair')) {
       return <boxGeometry args={[1, 1.5, 1]} />;
-    } else if (objectKey.includes('bicycle')) {
-      return <torusGeometry args={[1, 0.3, 16, 100]} />;
-    } else if (objectKey.includes('mug')) {
-      return <cylinderGeometry args={[0.5, 0.6, 1, 32]} />;
+    } else if (key.includes('table') || key.includes('desk')) {
+      return <boxGeometry args={[2, 0.2, 1.5]} />;
+    } else if (key.includes('lamp')) {
+      return <cylinderGeometry args={[0.3, 0.5, 1.5, 16]} />;
+    } else if (key.includes('bench')) {
+      return <boxGeometry args={[2.5, 0.3, 0.8]} />;
     }
+    
+    // Kitchenware
+    else if (key.includes('mug') || key.includes('cup')) {
+      return <cylinderGeometry args={[0.5, 0.6, 1, 32]} />;
+    } else if (key.includes('bowl')) {
+      return <sphereGeometry args={[0.7, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />;
+    } else if (key.includes('spoon')) {
+      return <capsuleGeometry args={[0.15, 1.2, 8, 16]} />;
+    }
+    
+    // Vehicles
+    else if (key.includes('bicycle') || key.includes('bike')) {
+      return <torusGeometry args={[1, 0.3, 16, 100]} />;
+    } else if (key.includes('car')) {
+      return <boxGeometry args={[2, 0.8, 1.2]} />;
+    }
+    
+    // Tools
+    else if (key.includes('hammer')) {
+      return <capsuleGeometry args={[0.2, 1, 8, 16]} />;
+    } else if (key.includes('key')) {
+      return <boxGeometry args={[0.15, 1, 0.05]} />;
+    }
+    
+    // Electronics
+    else if (key.includes('phone')) {
+      return <boxGeometry args={[0.4, 0.8, 0.08]} />;
+    }
+    
+    // Default
     return <boxGeometry args={[1, 1, 1]} />;
   };
   

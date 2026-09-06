@@ -15,15 +15,29 @@ Objectle is a web-based puzzle game where players have 6 guesses to identify a d
 
 ## For AI Agents
 
-Objectle is designed to be playable by AI agents using WebMCP tools. See DEMO.md for a detailed playthrough guide.
+Objectle is designed to be playable by AI agents using WebMCP tools. The game provides two ways for agents to interact:
 
-**Available MCP Tools:**
+### Browser WebMCP (Recommended)
+
+When viewing the page, agents can use tools directly via the browser's `modelContext` API:
+
 - `rotate_object(axis, degrees)` - Rotate the object to view from different angles
 - `zoom(level)` - Zoom in (gated by wrong guesses)
 - `read_view()` - Get a curated description of the current view
 - `submit_guess(name)` - Submit a guess and receive facet feedback
 
-Configure the MCP server in your MCP client settings. See AGENTS.md for setup instructions.
+**Features:**
+- Tools drive the live Three.js viewer
+- Real-time state updates
+- Visible tool log for humans watching agents play
+- Fallback panel UI for testing (bottom-right corner)
+
+### Node.js MCP Server (Alternative)
+
+Configure the MCP server in your MCP client settings (requires local Worker). See AGENTS.md for setup instructions.
+
+**Agent Panel:**
+The page includes a visible agent tools panel (bottom-right) that shows available tools, their schemas, and allows manual execution with copyable results. This follows the Foresight Shop pattern for transparent agent interaction.
 
 ## For Humans
 
@@ -107,23 +121,34 @@ The MCP server requires the Worker to be running. Configure it in your MCP clien
 
 ## Deployment
 
-### Deploy the Worker
+Objectle supports two deployment paths:
 
-1. Update `wrangler.jsonc` with your production D1 database ID
-2. Deploy:
-```bash
-npm run worker:deploy
-```
-
-### Deploy the Frontend (Cloudflare Pages)
+### 1. Cloudflare Pages (Primary)
 
 The repository includes a GitHub Actions workflow that automatically deploys to Cloudflare Pages on push to `main`.
+
+**Setup:**
+1. Create a Cloudflare API Token with "Cloudflare Pages" permissions
+2. Add GitHub secrets:
+   - `CLOUDFLARE_API_TOKEN`: Your API token
+   - `CLOUDFLARE_ACCOUNT_ID`: Your Cloudflare account ID
+3. Push to main branch. Automatic deployment to `objectle.pages.dev`
 
 **Manual deployment:**
 ```bash
 npm run build
 npx wrangler pages deploy dist
 ```
+
+### 2. GitHub Pages (Demo/Static)
+
+GitHub Pages deployment is available for testing and demonstration without requiring Cloudflare secrets.
+
+**Setup:**
+1. Enable GitHub Pages in repository settings (Source: GitHub Actions)
+2. Push to main branch. Automatic deployment to `marvelus-tech.github.io/objectle/`
+
+The GitHub Pages build automatically configures the correct base path and API endpoints.
 
 ### Environment Variables
 
