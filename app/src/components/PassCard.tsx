@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 
 /**
- * Pass to Agent card - Foresight-style handoff
- * Shows copy prompt, QR code, and instructions for dual-watch
+ * Pass to Agent card - Always visible for room demos
+ * QR must be scannable without clicking anything
  */
 export default function PassCard() {
   const [copied, setCopied] = useState(false);
-  const [expanded, setExpanded] = useState(false);
 
   const agentPrompt = `You are playing Objectle. Your human is watching the game on their host screen.
 
@@ -40,56 +39,50 @@ Play now!`;
 
   return (
     <div style={styles.container}>
-      <div 
-        style={styles.header}
-        onClick={() => setExpanded(!expanded)}
-      >
-        <span style={styles.title}>🤖 Pass to agent</span>
-        <span style={styles.toggle}>{expanded ? '▼' : '▶'}</span>
+      <div style={styles.header}>
+        <span style={styles.title}>Pass to agent</span>
       </div>
       
-      {expanded && (
-        <div style={styles.content}>
-          <p style={styles.intro}>
-            <strong>Hosts:</strong> Keep this screen visible as the dual-watch theater.
-          </p>
-          <p style={styles.intro}>
-            <strong>Guests:</strong> Scan the QR below to hand this to your agent. Watch the action on this screen.
-          </p>
-          
-          <div style={styles.qrSection}>
-            <img 
-              src="./pass/qr.svg" 
-              alt="QR code for agent onboarding" 
-              style={styles.qrLarge}
-            />
-            <p style={styles.qrLabel}>Scan to onboard your agent</p>
-          </div>
-          
-          <div style={styles.actions}>
-            <button onClick={handleCopy} style={styles.copyButton}>
-              {copied ? '✓ Copied!' : 'Copy prompt'}
-            </button>
-            <a 
-              href="./pass/" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              style={styles.passLink}
-            >
-              Open pass page →
-            </a>
-          </div>
-          
-          <div style={styles.howTo}>
-            <h4 style={styles.howToTitle}>How agents play</h4>
-            <ul style={styles.list}>
-              <li><strong>4 tools:</strong> read_view, rotate_object, zoom, submit_guess</li>
-              <li><strong>6 guesses</strong> to identify the daily 3D object</li>
-              <li><strong>Dual-watch:</strong> tool timeline + viewer update in real-time</li>
-            </ul>
-          </div>
+      <div style={styles.content}>
+        <p style={styles.intro}>
+          <strong>Hosts:</strong> Keep this screen visible as the dual-watch theater.
+        </p>
+        <p style={styles.intro}>
+          <strong>Guests:</strong> Scan the QR below to hand this to your agent. Watch the action on this screen.
+        </p>
+        
+        <div style={styles.qrSection}>
+          <img 
+            src={`${import.meta.env.BASE_URL}pass/qr.svg`}
+            alt="QR code for agent onboarding" 
+            style={styles.qrLarge}
+          />
+          <p style={styles.qrLabel}>Scan to onboard your agent</p>
         </div>
-      )}
+        
+        <div style={styles.actions}>
+          <button onClick={handleCopy} style={styles.copyButton}>
+            {copied ? '✓ Copied!' : 'Copy prompt'}
+          </button>
+          <a 
+            href={`${import.meta.env.BASE_URL}pass/`}
+            target="_blank" 
+            rel="noopener noreferrer"
+            style={styles.passLink}
+          >
+            Open pass page →
+          </a>
+        </div>
+        
+        <div style={styles.howTo}>
+          <h4 style={styles.howToTitle}>How agents play</h4>
+          <ul style={styles.list}>
+            <li><strong>4 tools:</strong> read_view, rotate_object, zoom, submit_guess</li>
+            <li><strong>6 guesses</strong> to identify the daily 3D object</li>
+            <li><strong>Dual-watch:</strong> tool timeline + viewer update in real-time</li>
+          </ul>
+        </div>
+      </div>
     </div>
   );
 }
@@ -105,20 +98,12 @@ const styles: Record<string, React.CSSProperties> = {
   header: {
     padding: '12px 16px',
     background: '#e8f4f8',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    cursor: 'pointer',
-    userSelect: 'none',
+    borderBottom: '2px solid #4a90e2',
   },
   title: {
     fontSize: '15px',
     fontWeight: 600,
     color: '#333',
-  },
-  toggle: {
-    fontSize: '12px',
-    color: '#4a90e2',
   },
   content: {
     padding: '16px',
@@ -184,10 +169,10 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: '16px',
   },
   qrLarge: {
-    width: '185px',
+    width: '240px',
     height: 'auto',
     marginBottom: '12px',
-    filter: 'contrast(1.2)',
+    filter: 'contrast(1.3)',
   },
   qrLabel: {
     fontSize: '13px',
