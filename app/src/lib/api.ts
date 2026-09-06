@@ -10,9 +10,8 @@ const getAPIBase = () => {
     return '/api';
   }
   
-  // Try deployed Worker (update this URL when Worker is deployed)
-  // For now, this will fail gracefully and fall back to local catalog
-  return 'https://objectle.marvelus-tech.workers.dev/api';
+  // Deployed Worker on Cloudflare (marvelus subdomain)
+  return 'https://objectle-worker-demo.marvelus.workers.dev/api';
 };
 
 const API_BASE = getAPIBase();
