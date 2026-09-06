@@ -15,15 +15,29 @@ Objectle is a web-based puzzle game where players have 6 guesses to identify a d
 
 ## For AI Agents
 
-Objectle is designed to be playable by AI agents using WebMCP tools. See DEMO.md for a detailed playthrough guide.
+Objectle is designed to be playable by AI agents using WebMCP tools. The game provides two ways for agents to interact:
 
-**Available MCP Tools:**
+### Browser WebMCP (Recommended)
+
+When viewing the page, agents can use tools directly via the browser's `modelContext` API:
+
 - `rotate_object(axis, degrees)` - Rotate the object to view from different angles
 - `zoom(level)` - Zoom in (gated by wrong guesses)
 - `read_view()` - Get a curated description of the current view
 - `submit_guess(name)` - Submit a guess and receive facet feedback
 
-Configure the MCP server in your MCP client settings. See AGENTS.md for setup instructions.
+**Features:**
+- Tools drive the live Three.js viewer
+- Real-time state updates
+- Visible tool log for humans watching agents play
+- Fallback panel UI for testing (bottom-right corner)
+
+### Node.js MCP Server (Alternative)
+
+Configure the MCP server in your MCP client settings (requires local Worker). See AGENTS.md for setup instructions.
+
+**Agent Panel:**
+The page includes a visible agent tools panel (bottom-right) that shows available tools, their schemas, and allows manual execution with copyable results. This follows the Foresight Shop pattern for transparent agent interaction.
 
 ## For Humans
 
