@@ -15,8 +15,8 @@ export default function GameOver() {
     <div style={styles.container}>
       <div style={{
         ...styles.card,
-        background: won ? '#d4edda' : '#f8d7da',
-        borderColor: won ? '#2ecc71' : '#e74c3c',
+        background: won ? 'var(--success-bg)' : 'var(--error-bg)',
+        borderColor: won ? 'var(--success)' : 'var(--error)',
       }}>
         <h2 style={styles.heading}>
           {won ? '🎉 You Won!' : '😔 Game Over'}
@@ -39,31 +39,34 @@ const styles: Record<string, React.CSSProperties> = {
     width: '100%',
   },
   card: {
-    padding: '2rem',
-    borderRadius: '12px',
-    border: '3px solid',
-    textAlign: 'center',
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+    padding: 'var(--space-8)',
+    borderRadius: 'var(--radius-xl)',
+    border: '2px solid',
+    textAlign: 'center' as const,
+    boxShadow: 'var(--shadow-lg)',
   },
   heading: {
-    fontSize: '28px',
-    fontWeight: 700,
-    marginBottom: '1rem',
-    color: '#333',
+    fontSize: 'var(--text-3xl)',
+    fontFamily: 'var(--font-display)',
+    fontWeight: 600,
+    marginBottom: 'var(--space-4)',
+    color: 'var(--ink)',
   },
   message: {
-    fontSize: '18px',
-    marginBottom: '1.5rem',
-    color: '#555',
+    fontSize: 'var(--text-lg)',
+    fontFamily: 'var(--font-ui)',
+    marginBottom: 'var(--space-6)',
+    color: 'var(--ink-secondary)',
   },
   shareButton: {
-    padding: '0.75rem 2rem',
-    background: '#4a90e2',
-    color: '#fff',
+    padding: 'var(--space-3) var(--space-8)',
+    background: 'var(--accent)',
+    color: 'white',
     border: 'none',
-    borderRadius: '6px',
-    fontSize: '16px',
-    fontWeight: 600,
+    borderRadius: 'var(--radius-md)',
+    fontSize: 'var(--text-base)',
+    fontFamily: 'var(--font-ui)',
+    fontWeight: 500,
     cursor: 'pointer',
   },
 };

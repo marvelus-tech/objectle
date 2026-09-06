@@ -79,17 +79,17 @@ function SceneObject({ objectKey }: { objectKey: string }) {
   // Material changes based on reveal tier
   const getMaterial = () => {
     if (revealTier === 0) {
-      // Silhouette: pure black
-      return <meshBasicMaterial color="#000000" />;
+      // Silhouette: pure black (#1A1A1A from style lock)
+      return <meshBasicMaterial color="#1A1A1A" />;
     } else if (revealTier === 1) {
-      // Partial reveal: dark gray clay
-      return <meshStandardMaterial color="#505050" roughness={0.8} metalness={0.1} />;
+      // Partial reveal: mid-tone clay
+      return <meshStandardMaterial color="#B8AFA3" roughness={0.7} metalness={0.1} />;
     } else if (revealTier === 2) {
-      // Full color: light clay/ceramic
-      return <meshStandardMaterial color="#d4c4b0" roughness={0.6} metalness={0.05} />;
+      // More detail: light clay
+      return <meshStandardMaterial color="#D9D2C8" roughness={0.5} metalness={0.05} />;
     } else {
-      // Full studio: detailed material with ambient occlusion effect
-      return <meshStandardMaterial color="#e8dcc8" roughness={0.5} metalness={0.1} />;
+      // Full studio: detailed material with soft sheen
+      return <meshStandardMaterial color="#EBE6DF" roughness={0.4} metalness={0.08} />;
     }
   };
   
@@ -102,50 +102,64 @@ function SceneObject({ objectKey }: { objectKey: string }) {
 }
 
 /**
- * Light studio with cool off-white theme
- * Uses Lightformers for soft studio lighting
+ * Light studio with warm gallery presentation
+ * Progressive lighting that reveals more detail as revealTier increases
  */
 function StudioLighting() {
   const revealTier = useGameStore(state => state.revealTier);
   
   return (
     <>
-      {/* Ambient light - always present */}
-      <ambientLight intensity={revealTier === 0 ? 0.3 : 0.5} />
+      {/* Soft ambient base */}
+      <ambientLight intensity={revealTier === 0 ? 0.2 : 0.3} color="#f8f8f6" />
       
-      {/* Key light */}
+      {/* Key light: soft directional from top-right */}
       <directionalLight
-        position={[5, 5, 5]}
-        intensity={revealTier === 0 ? 0.2 : 0.8}
+        position={[5, 6, 3]}
+        intensity={revealTier === 0 ? 0.3 : 0.8}
         castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+        shadow-camera-near={0.5}
+        shadow-camera-far={20}
+        shadow-camera-left={-5}
+        shadow-camera-right={5}
+        shadow-camera-top={5}
+        shadow-camera-bottom={-5}
       />
       
-      {/* Fill lights - more prominent as reveal tier increases */}
+      {/* Fill lights - activated at tier 1+ for depth */}
       {revealTier >= 1 && (
         <>
-          <directionalLight position={[-3, 2, -5]} intensity={0.3} />
-          <directionalLight position={[0, -2, 2]} intensity={0.2} />
+          <directionalLight position={[-3, 2, -3]} intensity={0.3} color="#dfe5ea" />
+          <directionalLight position={[2, -1, 3]} intensity={0.15} color="#f0efed" />
         </>
       )}
       
-      {/* Environment and Lightformers for studio look (tier 2+) */}
+      {/* Studio environment and Lightformers for gallery polish (tier 2+) */}
       {revealTier >= 2 && (
         <Environment preset="studio" background={false}>
           <Lightformer
-            intensity={0.5}
-            position={[10, 10, 10]}
-            scale={[10, 10, 10]}
-            form="ring"
-            color="#f0f4f8"
+            intensity={0.3}
+            position={[0, 5, -5]}
+            scale={[10, 5, 1]}
+            form="rect"
+            color="#ffffff"
           />
           <Lightformer
-            intensity={0.3}
-            position={[-10, 5, -10]}
-            scale={[8, 8, 8]}
+            intensity={0.2}
+            position={[0, -5, 5]}
+            scale={[10, 3, 1]}
             form="rect"
-            color="#e8f0f8"
+            color="#f8f8f6"
+          />
+          <Lightformer
+            intensity={0.15}
+            position={[-8, 0, 0]}
+            rotation-y={Math.PI / 2}
+            scale={[8, 8, 1]}
+            form="circle"
+            color="#ededeb"
           />
         </Environment>
       )}
@@ -161,11 +175,15 @@ export default function ObjectViewer({ objectKey }: ObjectViewerProps) {
   const cameraDistance = 5 - zoomLevel * 0.8; // 5 -> 4.2 -> 3.4 -> 2.6
   
   return (
-    <div style={{ width: '100%', height: '100%', background: '#f0f4f8', position: 'relative' }}>
+    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
       <Canvas
         shadows
-        gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}
-        style={{ background: '#f0f4f8' }}
+        gl={{ 
+          antialias: true, 
+          toneMapping: THREE.ACESFilmicToneMapping,
+          toneMappingExposure: 1.0,
+        }}
+        style={{ background: 'var(--stage-bg)' }}
       >
         <PerspectiveCamera makeDefault position={[0, 0, cameraDistance]} fov={50} />
         
@@ -176,10 +194,11 @@ export default function ObjectViewer({ objectKey }: ObjectViewerProps) {
         {/* Contact shadows for grounded look */}
         <ContactShadows
           position={[0, -1, 0]}
-          opacity={revealTier === 0 ? 0.2 : 0.5}
+          opacity={revealTier === 0 ? 0.15 : 0.3}
           scale={10}
-          blur={2}
+          blur={3}
           far={4}
+          color="#1A1A1A"
         />
         
         {/* Orbit controls - limited initially */}
@@ -191,25 +210,29 @@ export default function ObjectViewer({ objectKey }: ObjectViewerProps) {
           maxPolarAngle={Math.PI / 2}
         />
         
-        {/* Infinity cyclorama effect */}
+        {/* Infinity cyclorama backdrop */}
         <mesh position={[0, 0, -8]} receiveShadow>
           <planeGeometry args={[50, 50]} />
-          <meshStandardMaterial color="#f0f4f8" roughness={1} />
+          <meshStandardMaterial color="#EDEDEB" roughness={1} />
         </mesh>
       </Canvas>
       
-      {/* Overlay info */}
+      {/* Overlay progression badge */}
       <div style={{
         position: 'absolute',
-        top: 10,
-        right: 10,
-        background: 'rgba(255, 255, 255, 0.9)',
-        padding: '8px 12px',
-        borderRadius: '6px',
-        fontSize: '12px',
-        color: '#666',
+        top: 'var(--space-3)',
+        right: 'var(--space-3)',
+        background: 'var(--surface)',
+        padding: 'var(--space-2) var(--space-3)',
+        borderRadius: 'var(--radius-sm)',
+        fontSize: 'var(--text-xs)',
+        fontFamily: 'var(--font-ui)',
+        fontWeight: 500,
+        color: 'var(--ink-tertiary)',
+        boxShadow: 'var(--shadow-sm)',
+        border: '1px solid var(--border-subtle)',
       }}>
-        Zoom: {zoomLevel + 1}/4 | Reveal: {revealTier + 1}/4
+        Zoom {zoomLevel + 1}/4 · Reveal {revealTier + 1}/4
       </div>
     </div>
   );

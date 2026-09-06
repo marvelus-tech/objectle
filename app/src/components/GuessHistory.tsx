@@ -25,7 +25,7 @@ export default function GuessHistory() {
               <span style={styles.guessNumber}>#{guess.guessNumber}</span>
               <span style={{
                 ...styles.guessText,
-                color: guess.correct ? '#2ecc71' : '#e74c3c',
+                color: guess.correct ? 'var(--success)' : 'var(--error)',
                 fontWeight: guess.correct ? 600 : 400,
               }}>
                 {guess.guessText}
@@ -63,8 +63,9 @@ function FacetBadge({ label, value, match }: { label: string; value: string; mat
   return (
     <div style={{
       ...styles.facetBadge,
-      background: match ? '#d4edda' : '#f8d7da',
-      borderColor: match ? '#2ecc71' : '#e74c3c',
+      background: match ? 'var(--success-bg)' : 'var(--error-bg)',
+      borderColor: match ? 'var(--success)' : 'var(--error)',
+      color: match ? 'var(--success)' : 'var(--error)',
     }}>
       <div style={styles.facetLabel}>{label}</div>
       <div style={styles.facetValue}>{value}</div>
@@ -77,68 +78,77 @@ const styles: Record<string, React.CSSProperties> = {
     width: '100%',
   },
   heading: {
-    fontSize: '18px',
+    fontSize: 'var(--text-xl)',
+    fontFamily: 'var(--font-display)',
     fontWeight: 600,
-    marginBottom: '1rem',
-    color: '#333',
+    marginBottom: 'var(--space-4)',
+    color: 'var(--ink)',
   },
   list: {
     display: 'flex',
-    flexDirection: 'column',
-    gap: '1rem',
+    flexDirection: 'column' as const,
+    gap: 'var(--space-4)',
   },
   empty: {
-    padding: '2rem',
-    textAlign: 'center',
-    background: '#f8f9fa',
-    borderRadius: '8px',
+    padding: 'var(--space-8)',
+    textAlign: 'center' as const,
+    background: 'var(--info-bg)',
+    borderRadius: 'var(--radius-lg)',
+    border: `1px solid var(--border-subtle)`,
   },
   emptyText: {
-    color: '#666',
-    fontSize: '14px',
+    color: 'var(--ink-secondary)',
+    fontFamily: 'var(--font-ui)',
+    fontSize: 'var(--text-sm)',
     margin: 0,
   },
   guessItem: {
-    padding: '1rem',
-    background: '#fff',
-    borderRadius: '8px',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+    padding: 'var(--space-5)',
+    background: 'var(--surface)',
+    borderRadius: 'var(--radius-lg)',
+    boxShadow: 'var(--shadow-sm)',
+    border: `1px solid var(--border-subtle)`,
   },
   guessHeader: {
     display: 'flex',
     alignItems: 'center',
-    gap: '0.5rem',
-    marginBottom: '0.75rem',
+    gap: 'var(--space-3)',
+    marginBottom: 'var(--space-3)',
   },
   guessNumber: {
-    fontSize: '14px',
+    fontSize: 'var(--text-sm)',
+    fontFamily: 'var(--font-ui)',
     fontWeight: 600,
-    color: '#666',
+    color: 'var(--ink-tertiary)',
   },
   guessText: {
-    fontSize: '16px',
+    fontSize: 'var(--text-lg)',
+    fontFamily: 'var(--font-ui)',
     flex: 1,
   },
   checkmark: {
-    fontSize: '20px',
-    color: '#2ecc71',
+    fontSize: 'var(--text-xl)',
+    color: 'var(--success)',
   },
   facets: {
     display: 'flex',
-    gap: '0.5rem',
-    flexWrap: 'wrap',
+    gap: 'var(--space-2)',
+    flexWrap: 'wrap' as const,
   },
   facetBadge: {
-    padding: '0.5rem 0.75rem',
-    borderRadius: '6px',
-    border: '2px solid',
-    fontSize: '12px',
+    padding: 'var(--space-2) var(--space-3)',
+    borderRadius: 'var(--radius-sm)',
+    border: '1px solid',
+    fontSize: 'var(--text-xs)',
+    fontFamily: 'var(--font-ui)',
   },
   facetLabel: {
     fontWeight: 600,
-    marginBottom: '0.25rem',
+    marginBottom: 'var(--space-1)',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.05em',
   },
   facetValue: {
-    textTransform: 'capitalize',
+    textTransform: 'capitalize' as const,
   },
 };
