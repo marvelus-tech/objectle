@@ -18,7 +18,7 @@ export default function ToolLog() {
     <div style={styles.container}>
       <div style={styles.header} onClick={() => setExpanded(!expanded)}>
         <span style={styles.title}>
-          📋 Tool Log ({executions.length})
+          Tool Timeline ({executions.length})
         </span>
         <span style={styles.toggle}>{expanded ? '▼' : '▲'}</span>
       </div>
@@ -33,14 +33,17 @@ export default function ToolLog() {
               </p>
             </div>
           ) : (
-            executions.slice().reverse().map((exec) => (
+            executions.slice().reverse().map((exec, index) => (
             <div
               key={exec.id}
               style={{
                 ...styles.logEntry,
                 borderLeft: exec.success
-                  ? '4px solid #2ecc71'
-                  : '4px solid #e74c3c',
+                  ? `3px solid var(--success)`
+                  : `3px solid var(--error)`,
+                animation: 'slideInFade 200ms ease-out',
+                animationDelay: `${index * 40}ms`,
+                animationFillMode: 'both',
               }}
             >
               <div style={styles.logHeader}>
@@ -77,90 +80,104 @@ export default function ToolLog() {
 
 const styles: Record<string, React.CSSProperties> = {
   container: {
-    background: '#fff',
-    borderRadius: '8px',
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-    border: '2px solid #4a90e2',
+    background: 'var(--surface)',
+    borderRadius: 'var(--radius-xl)',
+    boxShadow: 'var(--shadow-md)',
+    border: `2px solid var(--accent)`,
     overflow: 'hidden',
   },
   header: {
-    padding: '12px 16px',
-    background: '#4a90e2',
-    color: '#fff',
+    padding: 'var(--space-4) var(--space-5)',
+    background: 'var(--accent)',
+    color: 'white',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     cursor: 'pointer',
-    userSelect: 'none',
+    userSelect: 'none' as const,
   },
   title: {
-    fontSize: '14px',
+    fontSize: 'var(--text-base)',
+    fontFamily: 'var(--font-display)',
     fontWeight: 600,
+    letterSpacing: '0.02em',
   },
   toggle: {
-    fontSize: '12px',
+    fontSize: 'var(--text-sm)',
   },
   logContainer: {
     maxHeight: '400px',
-    overflowY: 'auto',
-    padding: '12px',
+    overflowY: 'auto' as const,
+    padding: 'var(--space-4)',
   },
   logEntry: {
-    marginBottom: '12px',
-    padding: '10px',
-    background: '#f8f9fa',
-    borderRadius: '6px',
-    fontSize: '12px',
+    marginBottom: 'var(--space-3)',
+    padding: 'var(--space-4)',
+    background: 'var(--info-bg)',
+    borderRadius: 'var(--radius-md)',
+    fontSize: 'var(--text-xs)',
+    fontFamily: 'var(--font-ui)',
+    opacity: 0,
   },
   logHeader: {
     display: 'flex',
     justifyContent: 'space-between',
-    marginBottom: '6px',
+    marginBottom: 'var(--space-2)',
   },
   toolName: {
     fontWeight: 600,
-    color: '#333',
+    color: 'var(--ink)',
+    fontFamily: 'var(--font-ui)',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.03em',
   },
   timestamp: {
-    fontSize: '11px',
-    color: '#888',
+    fontSize: 'var(--text-xs)',
+    fontFamily: 'var(--font-ui)',
+    color: 'var(--ink-tertiary)',
+    fontVariantNumeric: 'tabular-nums',
   },
   args: {
-    marginBottom: '6px',
-    padding: '6px',
-    background: '#fff',
-    borderRadius: '4px',
-    fontSize: '11px',
-    fontFamily: 'monospace',
-    color: '#555',
+    marginBottom: 'var(--space-2)',
+    padding: 'var(--space-2)',
+    background: 'var(--surface)',
+    borderRadius: 'var(--radius-sm)',
+    fontSize: 'var(--text-xs)',
+    fontFamily: 'var(--font-ui), monospace',
+    color: 'var(--ink-secondary)',
+    border: `1px solid var(--border-subtle)`,
   },
   result: {
-    padding: '6px',
-    background: '#fff',
-    borderRadius: '4px',
-    fontSize: '11px',
-    color: '#333',
-    whiteSpace: 'pre-wrap',
-    wordBreak: 'break-word',
+    padding: 'var(--space-2)',
+    background: 'var(--surface)',
+    borderRadius: 'var(--radius-sm)',
+    fontSize: 'var(--text-xs)',
+    fontFamily: 'var(--font-ui)',
+    color: 'var(--ink)',
+    whiteSpace: 'pre-wrap' as const,
+    wordBreak: 'break-word' as const,
+    border: `1px solid var(--border-subtle)`,
   },
   more: {
-    color: '#888',
-    fontStyle: 'italic',
-    marginTop: '4px',
+    color: 'var(--ink-tertiary)',
+    fontStyle: 'italic' as const,
+    marginTop: 'var(--space-1)',
   },
   emptyState: {
-    textAlign: 'center',
-    padding: '2rem 1rem',
+    textAlign: 'center' as const,
+    padding: 'var(--space-10) var(--space-4)',
   },
   emptyText: {
-    fontSize: '14px',
+    fontSize: 'var(--text-lg)',
+    fontFamily: 'var(--font-display)',
     fontWeight: 600,
-    color: '#666',
-    margin: '0 0 0.5rem 0',
+    color: 'var(--ink-secondary)',
+    margin: `0 0 var(--space-2) 0`,
   },
   emptySubtext: {
-    fontSize: '12px',
-    color: '#888',
+    fontSize: 'var(--text-sm)',
+    fontFamily: 'var(--font-ui)',
+    color: 'var(--ink-tertiary)',
     margin: 0,
   },
 };

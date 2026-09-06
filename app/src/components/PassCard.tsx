@@ -45,10 +45,7 @@ Play now!`;
       
       <div style={styles.content}>
         <p style={styles.intro}>
-          <strong>Hosts:</strong> Keep this screen visible as the dual-watch theater.
-        </p>
-        <p style={styles.intro}>
-          <strong>Guests:</strong> Scan the QR below to hand this to your agent. Watch the action on this screen.
+          <strong>Room demo:</strong> Guests scan the QR code to hand this game to your AI agent. Watch the action unfold on this screen in real-time.
         </p>
         
         <div style={styles.qrSection}>
@@ -57,7 +54,7 @@ Play now!`;
             alt="QR code for agent onboarding" 
             style={styles.qrLarge}
           />
-          <p style={styles.qrLabel}>Scan to onboard your agent</p>
+          <p style={styles.qrLabel}>Scan to hand to your agent</p>
         </div>
         
         <div style={styles.actions}>
@@ -89,95 +86,108 @@ Play now!`;
 
 const styles: Record<string, React.CSSProperties> = {
   container: {
-    background: '#fff',
-    borderRadius: '8px',
-    border: '2px solid #4a90e2',
+    background: 'var(--surface)',
+    borderRadius: 'var(--radius-xl)',
+    border: `3px solid var(--accent)`,
     overflow: 'hidden',
-    marginBottom: '1.5rem',
+    marginBottom: 'var(--space-6)',
+    boxShadow: 'var(--shadow-md)',
   },
   header: {
-    padding: '12px 16px',
-    background: '#e8f4f8',
-    borderBottom: '2px solid #4a90e2',
+    padding: 'var(--space-4) var(--space-5)',
+    background: 'var(--accent-subtle)',
+    borderBottom: `2px solid var(--accent-border)`,
   },
   title: {
-    fontSize: '15px',
+    fontSize: 'var(--text-lg)',
+    fontFamily: 'var(--font-display)',
     fontWeight: 600,
-    color: '#333',
+    color: 'var(--accent)',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.05em',
   },
   content: {
-    padding: '16px',
+    padding: 'var(--space-6)',
   },
   intro: {
-    fontSize: '14px',
-    color: '#555',
-    marginBottom: '16px',
+    fontSize: 'var(--text-sm)',
+    fontFamily: 'var(--font-ui)',
+    color: 'var(--ink-secondary)',
+    marginBottom: 'var(--space-4)',
     lineHeight: 1.5,
   },
   actions: {
     display: 'flex',
-    gap: '12px',
-    marginBottom: '20px',
-    flexWrap: 'wrap',
+    gap: 'var(--space-3)',
+    marginBottom: 'var(--space-5)',
+    flexWrap: 'wrap' as const,
   },
   copyButton: {
-    padding: '10px 20px',
-    background: '#4a90e2',
-    color: '#fff',
+    padding: 'var(--space-3) var(--space-5)',
+    background: 'var(--accent)',
+    color: 'white',
     border: 'none',
-    borderRadius: '6px',
-    fontSize: '14px',
-    fontWeight: 600,
+    borderRadius: 'var(--radius-md)',
+    fontSize: 'var(--text-sm)',
+    fontFamily: 'var(--font-ui)',
+    fontWeight: 500,
     cursor: 'pointer',
-    transition: 'background 0.2s',
   },
   passLink: {
     display: 'inline-block',
-    padding: '10px 20px',
-    background: '#fff',
-    color: '#4a90e2',
-    border: '2px solid #4a90e2',
-    borderRadius: '6px',
-    fontSize: '14px',
-    fontWeight: 600,
+    padding: 'var(--space-3) var(--space-5)',
+    background: 'transparent',
+    color: 'var(--accent)',
+    border: `2px solid var(--accent)`,
+    borderRadius: 'var(--radius-md)',
+    fontSize: 'var(--text-sm)',
+    fontFamily: 'var(--font-ui)',
+    fontWeight: 500,
     textDecoration: 'none',
-    transition: 'all 0.2s',
   },
   howTo: {
-    background: '#f8f9fa',
-    padding: '14px',
-    borderRadius: '6px',
-    marginBottom: '16px',
+    background: 'var(--info-bg)',
+    padding: 'var(--space-4)',
+    borderRadius: 'var(--radius-md)',
+    marginBottom: 'var(--space-5)',
+    border: `1px solid var(--border-subtle)`,
   },
   howToTitle: {
-    fontSize: '14px',
+    fontSize: 'var(--text-sm)',
+    fontFamily: 'var(--font-ui)',
     fontWeight: 600,
-    marginBottom: '8px',
-    color: '#333',
+    marginBottom: 'var(--space-2)',
+    color: 'var(--ink)',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.05em',
   },
   list: {
-    fontSize: '13px',
-    color: '#555',
-    paddingLeft: '20px',
+    fontSize: 'var(--text-sm)',
+    fontFamily: 'var(--font-ui)',
+    color: 'var(--ink-secondary)',
+    paddingLeft: 'var(--space-5)',
     margin: 0,
   },
   qrSection: {
-    textAlign: 'center',
-    padding: '20px 0',
-    background: '#f8f9fa',
-    borderRadius: '8px',
-    marginBottom: '16px',
+    textAlign: 'center' as const,
+    padding: 'var(--space-6)',
+    background: 'var(--surface-subtle)',
+    borderRadius: 'var(--radius-lg)',
+    marginBottom: 'var(--space-5)',
+    border: `2px solid var(--accent)`,
   },
   qrLarge: {
-    width: '240px',
+    width: '260px',
     height: 'auto',
-    marginBottom: '12px',
-    filter: 'contrast(1.3)',
+    marginBottom: 'var(--space-3)',
+    filter: 'contrast(1.2)',
+    borderRadius: 'var(--radius-sm)',
   },
   qrLabel: {
-    fontSize: '13px',
+    fontSize: 'var(--text-base)',
+    fontFamily: 'var(--font-display)',
     fontWeight: 600,
-    color: '#333',
+    color: 'var(--accent)',
     margin: 0,
   },
 };

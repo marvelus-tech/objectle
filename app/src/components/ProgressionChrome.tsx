@@ -28,12 +28,13 @@ export default function ProgressionChrome() {
                 key={level}
                 style={{
                   ...styles.lock,
-                  background: unlocked ? '#4a90e2' : '#e0e0e0',
-                  color: unlocked ? '#fff' : '#999',
+                  background: unlocked ? 'var(--accent)' : 'var(--surface)',
+                  color: unlocked ? 'white' : 'var(--ink-muted)',
+                  border: unlocked ? 'none' : `1px solid var(--border)`,
                 }}
-                title={unlocked ? `Zoom ${level} unlocked` : `Zoom ${level} locked`}
+                title={unlocked ? `Zoom ${level + 1} unlocked` : `Zoom ${level + 1} locked`}
               >
-                {level}
+                {level + 1}
               </div>
             );
           })}
@@ -72,53 +73,56 @@ export default function ProgressionChrome() {
 
 const styles: Record<string, React.CSSProperties> = {
   container: {
-    background: '#fff',
-    borderRadius: '8px',
-    padding: '14px 16px',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-    border: '1px solid #e0e0e0',
+    background: 'var(--info-bg)',
+    borderRadius: 'var(--radius-lg)',
+    padding: 'var(--space-5)',
+    border: `1px solid var(--border)`,
   },
   section: {
-    marginBottom: '14px',
+    marginBottom: 'var(--space-5)',
   },
   label: {
-    fontSize: '12px',
+    fontSize: 'var(--text-xs)',
+    fontFamily: 'var(--font-ui)',
     fontWeight: 600,
-    color: '#666',
-    marginBottom: '6px',
-    textTransform: 'uppercase',
-    letterSpacing: '0.03em',
+    color: 'var(--ink-secondary)',
+    marginBottom: 'var(--space-2)',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.05em',
   },
   locks: {
     display: 'flex',
-    gap: '6px',
+    gap: 'var(--space-2)',
   },
   lock: {
     flex: 1,
-    padding: '8px 0',
-    textAlign: 'center',
-    borderRadius: '4px',
-    fontSize: '14px',
+    padding: 'var(--space-3) 0',
+    textAlign: 'center' as const,
+    borderRadius: 'var(--radius-sm)',
+    fontSize: 'var(--text-base)',
+    fontFamily: 'var(--font-ui)',
     fontWeight: 600,
-    transition: 'all 0.3s',
+    transition: 'all 0.2s ease',
+    border: '1px solid transparent',
   },
   revealBar: {
-    position: 'relative',
-    height: '28px',
-    background: '#e0e0e0',
-    borderRadius: '4px',
+    position: 'relative' as const,
+    height: '32px',
+    background: 'var(--surface)',
+    borderRadius: 'var(--radius-md)',
     overflow: 'hidden',
+    border: `1px solid var(--border)`,
   },
   revealFill: {
-    position: 'absolute',
+    position: 'absolute' as const,
     top: 0,
     left: 0,
     height: '100%',
-    background: 'linear-gradient(90deg, #4a90e2, #2ecc71)',
+    background: 'var(--accent)',
     transition: 'width 0.4s ease',
   },
   revealText: {
-    position: 'absolute',
+    position: 'absolute' as const,
     top: 0,
     left: 0,
     width: '100%',
@@ -126,28 +130,32 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: '13px',
+    fontSize: 'var(--text-sm)',
+    fontFamily: 'var(--font-ui)',
     fontWeight: 600,
-    color: '#333',
+    color: 'var(--ink)',
     zIndex: 1,
+    fontVariantNumeric: 'tabular-nums',
   },
   revealLabels: {
     display: 'flex',
     justifyContent: 'space-between',
-    marginTop: '4px',
+    marginTop: 'var(--space-2)',
   },
   revealLabelItem: {
-    fontSize: '10px',
-    color: '#888',
+    fontSize: 'var(--text-xs)',
+    fontFamily: 'var(--font-ui)',
+    color: 'var(--ink-tertiary)',
   },
   hint: {
-    marginTop: '8px',
-    paddingTop: '12px',
-    borderTop: '1px solid #e0e0e0',
+    marginTop: 'var(--space-3)',
+    paddingTop: 'var(--space-4)',
+    borderTop: `1px solid var(--border-subtle)`,
   },
   hintText: {
-    fontSize: '11px',
-    color: '#888',
-    fontStyle: 'italic',
+    fontSize: 'var(--text-xs)',
+    fontFamily: 'var(--font-ui)',
+    color: 'var(--ink-tertiary)',
+    fontStyle: 'italic' as const,
   },
 };
