@@ -2,23 +2,23 @@
  * API client for Objectle Worker
  */
 
+import { getTodaysChallenge, checkGuessLocal, getScoreLocal } from './challenges';
+
 // Support multiple deployment paths
 const getAPIBase = () => {
   if (import.meta.env.DEV) {
     return '/api';
   }
   
-  // Check if we're on GitHub Pages
-  if (window.location.hostname.includes('github.io')) {
-    // Use demo Worker endpoint for GitHub Pages
-    return 'https://objectle-worker-demo.marvelus-tech.workers.dev/api';
-  }
-  
-  // Default to Cloudflare Pages Worker
-  return 'https://objectle-worker.marvelus-tech.workers.dev/api';
+  // Try deployed Worker (update this URL when Worker is deployed)
+  // For now, this will fail gracefully and fall back to local catalog
+  return 'https://objectle.marvelus-tech.workers.dev/api';
 };
 
 const API_BASE = getAPIBase();
+
+// Track if Worker is available
+let workerAvailable: boolean | null = null;
 
 export interface DailyChallengeResponse {
   date: string;
@@ -64,30 +64,112 @@ export interface LeaderboardResponse {
 
 export const api = {
   async getDailyChallenge(): Promise<DailyChallengeResponse> {
-    const res = await fetch(`${API_BASE}/daily-challenge`);
-    if (!res.ok) throw new Error('Failed to fetch daily challenge');
-    return res.json();
+    // Try Worker first
+    if (workerAvailable !== false) {
+      try {
+        const res = await fetch(`${API_BASE}/daily-challenge`, {
+          signal: AbortSignal.timeout(5000), // 5 second timeout
+        });
+        
+        if (res.ok) {
+          workerAvailable = true;
+          return res.json();
+        }
+        
+        // Worker returned error, fall back
+        console.warn('Worker returned non-ok status, falling back to local catalog');
+        workerAvailable = false;
+      } catch (error) {
+        console.warn('Worker fetch failed, falling back to local catalog:', error);
+        workerAvailable = false;
+      }
+    }
+    
+    // Fallback to local catalog
+    const local = getTodaysChallenge();
+    if (!local) {
+      throw new Error('No challenge available for today');
+    }
+    
+    return {
+      date: local.date,
+      objectKey: local.objectKey,
+      maxGuesses: 6,
+    };
   },
 
   async checkGuess(playerId: string, guess: string): Promise<CheckGuessResponse> {
-    const res = await fetch(`${API_BASE}/check-guess`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ playerId, guess }),
-    });
-    if (!res.ok) throw new Error('Failed to check guess');
-    return res.json();
+    // Try Worker first
+    if (workerAvailable !== false) {
+      try {
+        const res = await fetch(`${API_BASE}/check-guess`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ playerId, guess }),
+          signal: AbortSignal.timeout(5000),
+        });
+        
+        if (res.ok) {
+          workerAvailable = true;
+          return res.json();
+        }
+        
+        console.warn('Worker returned non-ok status, falling back to local check');
+        workerAvailable = false;
+      } catch (error) {
+        console.warn('Worker fetch failed, falling back to local check:', error);
+        workerAvailable = false;
+      }
+    }
+    
+    // Fallback to local check
+    return checkGuessLocal(playerId, guess);
   },
 
   async getScore(playerId: string): Promise<ScoreResponse> {
-    const res = await fetch(`${API_BASE}/score?playerId=${encodeURIComponent(playerId)}`);
-    if (!res.ok) throw new Error('Failed to fetch score');
-    return res.json();
+    // Try Worker first
+    if (workerAvailable !== false) {
+      try {
+        const res = await fetch(`${API_BASE}/score?playerId=${encodeURIComponent(playerId)}`, {
+          signal: AbortSignal.timeout(5000),
+        });
+        
+        if (res.ok) {
+          workerAvailable = true;
+          return res.json();
+        }
+        
+        console.warn('Worker returned non-ok status, falling back to local score');
+        workerAvailable = false;
+      } catch (error) {
+        console.warn('Worker fetch failed, falling back to local score:', error);
+        workerAvailable = false;
+      }
+    }
+    
+    // Fallback to local score
+    return getScoreLocal(playerId);
   },
 
   async getLeaderboard(): Promise<LeaderboardResponse> {
-    const res = await fetch(`${API_BASE}/leaderboard`);
-    if (!res.ok) throw new Error('Failed to fetch leaderboard');
-    return res.json();
+    // Try Worker first (leaderboard requires server)
+    if (workerAvailable !== false) {
+      try {
+        const res = await fetch(`${API_BASE}/leaderboard`, {
+          signal: AbortSignal.timeout(5000),
+        });
+        
+        if (res.ok) {
+          workerAvailable = true;
+          return res.json();
+        }
+      } catch (error) {
+        console.warn('Worker fetch failed for leaderboard:', error);
+        workerAvailable = false;
+      }
+    }
+    
+    // Leaderboard not available in fallback mode
+    return { leaderboard: [] };
   },
 };
