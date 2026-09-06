@@ -1,0 +1,138 @@
+# Objectle
+
+Daily Wordle-style 3D object guessing game for AI agents and humans.
+
+> https://objectle.pages.dev
+> GitHub: https://github.com/marvelus-tech/objectle
+
+## Game Mechanics
+
+- 6 guesses to identify a daily 3D object
+- Same object for everyone each UTC day
+- Heardle-style zoom progression (unlock zoom with wrong guesses)
+- Worldle-style facet feedback (category, material, scale)
+- Silhouette first, color unlocks progressively
+- Synonym matching (bike = bicycle)
+- Streak tracking across days
+
+## For AI Agents
+
+Play via WebMCP tools. See AGENTS.md for setup and strategy guide.
+
+**MCP Tools:**
+- `rotate_object(axis, degrees)` - Examine from different angles
+- `zoom(level)` - Zoom in (gated 0-3)
+- `read_view()` - Get curated description (never reveals answer)
+- `submit_guess(name)` - Submit guess, get facet feedback
+
+**Configuration:**
+```json
+{
+  "mcpServers": {
+    "objectle-viewer": {
+      "command": "node",
+      "args": ["worker/mcp-server.js"],
+      "env": {
+        "WORKER_API": "https://objectle-worker.marvelus-tech.workers.dev/api"
+      }
+    }
+  }
+}
+```
+
+**Strategy:**
+1. Read initial view (silhouette)
+2. Rotate to see multiple angles
+3. Make informed first guess
+4. Use facet feedback (category/material/scale)
+5. Unlock zoom, refine with detail
+6. Iterate until solved
+
+See DEMO.md for full playthrough example.
+
+## Architecture
+
+- **Frontend**: React + React Three Fiber + Vite
+- **Backend**: Cloudflare Worker + D1
+- **Deployment**: Cloudflare Pages + Workers
+- **MCP Server**: Node.js stdio server
+
+**Stack:**
+- Three.js for 3D rendering
+- ACES tone mapping, studio lighting
+- Contact shadows, Lightformers/Environment
+- Cool off-white theme (light mode only)
+- Zustand state management
+
+## Local Development
+
+```bash
+# Install
+npm install
+
+# Setup D1 database
+wrangler d1 create objectle-db
+wrangler d1 execute objectle-db --local --file=./schema.sql
+
+# Start Worker
+npm run worker:dev
+
+# Start frontend
+npm run dev
+```
+
+## Deployment
+
+**Worker:**
+```bash
+npm run worker:deploy
+```
+
+**Pages (via GitHub Actions):**
+Push to main branch. Workflow auto-deploys.
+
+## Anti-Cheat
+
+- Answer only on Worker, never sent to client
+- Opaque object keys (daily/obj_abc123, not bicycle.glb)
+- GLTF metadata stripped
+- Rate limiting
+- Synonym validation
+
+## Adding Objects
+
+```sql
+INSERT INTO daily_challenges (date, object_key, object_name, category, material, scale)
+VALUES ('2026-09-09', 'daily/obj_lamp_001', 'lamp', 'furniture', 'metal', 'medium');
+
+INSERT INTO synonyms (canonical, synonym) VALUES ('lamp', 'light');
+```
+
+Path to 100: source/commission models, optimize (<10k tris), upload to R2, batch insert daily_challenges, maintain synonym coverage.
+
+## Tech Highlights
+
+- WebMCP protocol for agent interaction
+- Heardle-style gating (zoom unlocks progressively)
+- Worldle-style facet grid for share cards
+- Silhouette-to-color reveal progression
+- Light studio with Lightformers (cool/off-white)
+- Procedural geometry MVP (scales to GLTF/R2)
+
+## SEO
+
+**Meta Description:** "Objectle: Daily 3D object guessing game for AI agents and humans. Guess the object in 6 tries with Wordle-style feedback."
+
+**Keywords:** objectle, 3d game, wordle, daily puzzle, ai agents, three.js, webmcp
+
+## Links
+
+- Live game: https://objectle.pages.dev
+- GitHub: https://github.com/marvelus-tech/objectle
+- Agent guide: /AGENTS.md
+- Demo script: /DEMO.md
+- Schema: /schema.sql
+- Worker: /worker/index.ts
+- MCP Server: /worker/mcp-server.ts
+
+Built with React Three Fiber, Cloudflare Workers, D1, and WebMCP.
