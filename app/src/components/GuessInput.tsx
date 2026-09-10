@@ -39,12 +39,14 @@ export default function GuessInput() {
   
   return (
     <form onSubmit={handleSubmit} style={styles.form}>
+      <label htmlFor="guess-input" style={styles.label}>Make a guess</label>
       <div style={styles.inputContainer}>
         <input
+          id="guess-input"
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Enter your guess..."
+          placeholder="Enter an object..."
           style={styles.input}
           disabled={submitting}
           autoComplete="off"
@@ -52,6 +54,7 @@ export default function GuessInput() {
         />
         <button
           type="submit"
+          className="btn-primary"
           style={styles.button}
           disabled={!input.trim() || submitting}
         >
@@ -68,18 +71,33 @@ export default function GuessInput() {
 const styles: Record<string, React.CSSProperties> = {
   form: {
     width: '100%',
+    padding: 'var(--space-5)',
+    background: 'var(--surface)',
+    borderRadius: 'var(--radius-xl)',
+    border: '1px solid var(--border-subtle)',
+    boxShadow: 'var(--shadow-sm)',
+  },
+  label: {
+    display: 'block',
+    marginBottom: 'var(--space-3)',
+    fontSize: 'var(--text-xs)',
+    fontFamily: 'var(--font-ui)',
+    fontWeight: 600,
+    color: 'var(--ink-secondary)',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.08em',
   },
   inputContainer: {
     display: 'flex',
     gap: 'var(--space-3)',
-    marginBottom: 'var(--space-2)',
+    marginBottom: 'var(--space-3)',
   },
   input: {
     flex: 1,
     padding: 'var(--space-3) var(--space-4)',
     fontSize: 'var(--text-base)',
     fontFamily: 'var(--font-ui)',
-    border: `2px solid var(--border)`,
+    border: `1px solid var(--border)`,
     borderRadius: 'var(--radius-md)',
     outline: 'none',
     background: 'var(--surface)',
@@ -87,9 +105,6 @@ const styles: Record<string, React.CSSProperties> = {
   },
   button: {
     padding: 'var(--space-3) var(--space-6)',
-    background: 'var(--accent)',
-    color: 'white',
-    border: 'none',
     borderRadius: 'var(--radius-md)',
     fontSize: 'var(--text-base)',
     fontFamily: 'var(--font-ui)',

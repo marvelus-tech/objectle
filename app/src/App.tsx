@@ -92,21 +92,35 @@ export default function App() {
           <span
             style={{
               ...styles.signalDot,
-              background: agentLive ? 'var(--success)' : roomConnected ? 'var(--accent)' : 'var(--ink-muted)',
+              background: agentLive
+                ? 'var(--neon-a)'
+                : roomConnected
+                  ? 'var(--accent)'
+                  : 'var(--ink-muted)',
+              boxShadow: agentLive
+                ? '0 0 0 4px var(--neon-a-soft)'
+                : '0 0 0 4px var(--accent-subtle)',
+              animation: agentLive ? 'liveDot 1.6s ease-out infinite' : undefined,
             }}
           />
           {agentLive ? 'Agent live' : roomConnected ? 'Live theater' : 'Local mode'}
         </span>
         <h1 style={styles.title}>Objectle</h1>
-        <p style={styles.subtitle}>Daily 3D Object Guessing Game · Dual-Watch Theater</p>
+        <p style={styles.subtitle}>A daily 3D object guessing game. Dual-watch theater.</p>
+        <span className="theater-header-meta" style={styles.headerMeta}>
+          New object daily at midnight
+        </span>
       </header>
 
       <main className="theater-main" style={styles.main}>
         <div className="stage-column" style={styles.stageColumn}>
           <div className="viewer-frame" style={styles.viewerWrapper}>
-            <div className="viewer-stage" style={styles.viewer}>
-              <ObjectViewer visualProfile={visualProfile} />
-              <StageEffects />
+            <div className="prism-frame">
+              <div className="prism-frame__inner viewer-stage" style={styles.viewer}>
+                <ObjectViewer visualProfile={visualProfile} />
+                <StageEffects />
+                <div className="stage-corners" aria-hidden="true" />
+              </div>
             </div>
             <div style={styles.controls}>
               <ViewerControls />
@@ -182,7 +196,16 @@ const styles: Record<string, React.CSSProperties> = {
     width: '7px',
     height: '7px',
     borderRadius: '50%',
-    boxShadow: '0 0 0 4px var(--accent-subtle)',
+  },
+  headerMeta: {
+    position: 'absolute',
+    top: 'var(--space-4)',
+    right: 'var(--space-5)',
+    color: 'var(--ink-tertiary)',
+    fontSize: '10px',
+    fontWeight: 600,
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase',
   },
   title: {
     fontSize: 'var(--text-3xl)',
@@ -216,20 +239,11 @@ const styles: Record<string, React.CSSProperties> = {
   viewerWrapper: {
     display: 'flex',
     flexDirection: 'column' as const,
-    gap: 'var(--space-4)',
-    background: 'var(--surface)',
-    borderRadius: 'var(--radius-xl)',
-    padding: 'var(--space-8)',
-    boxShadow: 'var(--shadow-md)',
-    border: `1px solid var(--border-subtle)`,
+    gap: 'var(--space-5)',
   },
   viewer: {
     width: '100%',
-    height: '500px',
-    borderRadius: 'var(--radius-lg)',
-    overflow: 'hidden',
-    background: 'var(--stage-bg)',
-    position: 'relative' as const,
+    height: '520px',
   },
   controls: {
     width: '100%',

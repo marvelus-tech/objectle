@@ -1,9 +1,9 @@
 /* Global styles for Objectle - Light theme only */
-/* Design System: Museum Studio × Wordle Ritual × Apple Restraint */
+/* Design System: Soft Prism (museum light studio + dual neon hairline) */
 
 :root {
   /* Foundation */
-  --field: #F6F3EC;
+  --field: #F7F4EE;
   --surface: #FFFFFF;
   --surface-subtle: #FEFDFB;
   
@@ -13,11 +13,23 @@
   --ink-tertiary: #757575;
   --ink-muted: #999999;
   
-  /* Accent (Clay Terracotta) */
-  --accent: #B8503C;
-  --accent-hover: #9A3D2E;
-  --accent-subtle: #F4E8E5;
-  --accent-border: #D6816F;
+  /* Accent (Prism Charcoal): primary CTAs, QR frame, wordmark */
+  --accent: #22222A;
+  --accent-hover: #0F0F14;
+  --accent-subtle: #EEF0F4;
+  --accent-border: #C8CAD2;
+
+  /* Neon pair: reserved for stage glow, focus, live state, meters */
+  --neon-a: #3DD6C3;
+  --neon-b: #8B7CFF;
+  --neon-a-ink: #0F8F82;   /* AA text on white */
+  --neon-b-ink: #5A4BD6;   /* AA text on white */
+  --neon-a-wash: #E9F9F6;
+  --neon-b-wash: #F0EEFF;
+  --neon-a-soft: rgba(61, 214, 195, 0.22);
+  --neon-b-soft: rgba(139, 124, 255, 0.20);
+  --neon-ring: 0 0 0 3px rgba(61, 214, 195, 0.30);
+  --prism-line: linear-gradient(90deg, var(--neon-a), var(--neon-b));
   
   /* Semantic */
   --success: #2D7A3E;
@@ -28,7 +40,7 @@
   --info-bg: #F0EFED;
   
   /* 3D Stage */
-  --stage-bg: #EDEDEB;
+  --stage-bg: #F0EEEA;
   --stage-shadow: rgba(26, 26, 26, 0.12);
   --clay-silhouette: #1A1A1A;
   --clay-mid: #B8AFA3;
@@ -126,9 +138,155 @@ input {
   transition: border-color 180ms ease-out, box-shadow 180ms ease-out;
 }
 
-input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-subtle);
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--neon-a);
+  box-shadow: var(--neon-ring);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--neon-a);
+  outline-offset: 3px;
+}
+
+/* Button variants: charcoal primary, hairline ghost */
+.btn-primary {
+  background: var(--accent);
+  color: #FFFFFF;
+  border: 1px solid var(--accent);
+}
+
+.btn-primary:not(:disabled):hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  opacity: 1;
+}
+
+.btn-ghost {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--border);
+}
+
+.btn-ghost:not(:disabled):hover {
+  background: var(--accent-subtle);
+  border-color: var(--border-strong);
+  opacity: 1;
+}
+
+/* Prism hairline: 2px dual-tone rule along the top edge of a card */
+.prism-hairline {
+  position: relative;
+}
+
+.prism-hairline::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--prism-line);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/*
+ * Prism stage frame.
+ * The hairline is a large conic gradient on ::before that rotates with a
+ * transform, so the animation stays on the compositor (no per-frame paint of
+ * the gradient). The parent clips it to a 2px ring; the soft glow is static
+ * layered box-shadow at low alpha so it reads premium on a paper field.
+ */
+.prism-frame {
+  position: relative;
+  padding: 2px;
+  border-radius: calc(var(--radius-xl) + 4px);
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--surface);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.9),
+    0 0 20px var(--neon-a-soft),
+    0 10px 44px var(--neon-b-soft),
+    var(--shadow-md);
+}
+
+.prism-frame::before {
+  content: '';
+  position: absolute;
+  inset: -100%;
+  z-index: 0;
+  background: conic-gradient(
+    from 0deg,
+    var(--neon-a),
+    var(--neon-b) 28%,
+    #DDF3F0 48%,
+    var(--neon-a) 56%,
+    var(--neon-b) 82%,
+    #E6E2FF 94%,
+    var(--neon-a)
+  );
+  animation: prismChase 18s linear infinite;
+  will-change: transform;
+}
+
+.prism-frame__inner {
+  position: relative;
+  z-index: 1;
+  border-radius: calc(var(--radius-xl) + 2px);
+  overflow: hidden;
+  background: var(--stage-bg);
+}
+
+@keyframes prismChase {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Viewfinder corner ticks, drawn with 8 tiny gradients so no extra DOM */
+.stage-corners {
+  position: absolute;
+  inset: 14px;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.6;
+  --tick: var(--ink-secondary);
+  background-image:
+    linear-gradient(var(--tick), var(--tick)),
+    linear-gradient(var(--tick), var(--tick)),
+    linear-gradient(var(--tick), var(--tick)),
+    linear-gradient(var(--tick), var(--tick)),
+    linear-gradient(var(--tick), var(--tick)),
+    linear-gradient(var(--tick), var(--tick)),
+    linear-gradient(var(--tick), var(--tick)),
+    linear-gradient(var(--tick), var(--tick));
+  background-size:
+    14px 1.5px, 1.5px 14px,
+    14px 1.5px, 1.5px 14px,
+    14px 1.5px, 1.5px 14px,
+    14px 1.5px, 1.5px 14px;
+  background-position:
+    0 0, 0 0,
+    100% 0, 100% 0,
+    0 100%, 0 100%,
+    100% 100%, 100% 100%;
+  background-repeat: no-repeat;
+}
+
+a {
+  transition: color 180ms ease-out, background-color 180ms ease-out,
+    border-color 180ms ease-out, transform 140ms ease-out;
+}
+
+a:active {
+  transform: scale(0.98);
 }
 
 /* Utility classes */
@@ -234,8 +392,8 @@ input:focus {
 
 /* Soft breathing dot while an agent is actively calling tools (stops when idle) */
 @keyframes liveDot {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.55); }
-  60% { box-shadow: 0 0 0 6px rgba(255, 255, 255, 0); }
+  0%, 100% { box-shadow: 0 0 0 3px var(--neon-a-soft); }
+  60% { box-shadow: 0 0 0 9px rgba(61, 214, 195, 0); }
 }
 
 @keyframes captionReveal {
@@ -295,13 +453,13 @@ input:focus {
     display: flex !important;
   }
 
-  .viewer-frame {
-    padding: var(--space-3) !important;
-  }
-
   .viewer-stage {
     height: min(58vh, 430px) !important;
     min-height: 360px;
+  }
+
+  .theater-header-meta {
+    display: none !important;
   }
 
   .agent-panel-shell {
@@ -323,5 +481,13 @@ input:focus {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  /* Static dual-tone border, no chase */
+  .prism-frame::before {
+    animation: none !important;
+    inset: 0;
+    background: linear-gradient(135deg, var(--neon-a), var(--neon-b));
+    will-change: auto;
   }
 }
