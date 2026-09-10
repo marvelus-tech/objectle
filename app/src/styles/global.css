@@ -196,80 +196,43 @@ a:active {
   border-radius: var(--radius-xl);
 }
 
-/* ——— Neon stage frame ——— */
+/* ——— Neon stage frame (padding-ring, no mask-composite) ——— */
 .neon-stage {
   position: relative;
   border-radius: var(--radius-lg);
-  padding: 1.5px;
+  padding: 2px;
   isolation: isolate;
-}
-
-.neon-stage__glow {
-  position: absolute;
-  inset: -6px;
-  border-radius: calc(var(--radius-lg) + 6px);
   overflow: hidden;
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0.38;
-  filter: blur(10px);
+  background: #111;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.35),
+    0 0 18px rgba(34, 211, 238, 0.28),
+    0 0 36px rgba(232, 121, 249, 0.18);
 }
 
-.neon-stage__glow::before {
-  content: "";
+.neon-stage__spin {
   position: absolute;
   inset: -40%;
-  background: conic-gradient(
-    from 0deg,
-    var(--neon-cyan),
-    var(--neon-violet),
-    var(--neon-magenta),
-    var(--neon-teal),
-    var(--neon-cyan)
-  );
-  animation: neonRotate 6s linear infinite;
-}
-
-.neon-stage__border {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  overflow: hidden;
-  z-index: 1;
+  z-index: 0;
   pointer-events: none;
-  padding: 1.5px;
-  -webkit-mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
-  mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-}
-
-.neon-stage__border::before {
-  content: "";
-  position: absolute;
-  inset: -50%;
   background: conic-gradient(
     from 0deg,
-    #67E8F9,
-    #C4B5FD,
-    #F0ABFC,
-    #5EEAD4,
-    #67E8F9
+    #22D3EE,
+    #A78BFA,
+    #E879F9,
+    #14B8A6,
+    #22D3EE
   );
   animation: neonRotate 4.5s linear infinite;
 }
 
 .neon-stage__inner {
   position: relative;
-  z-index: 2;
+  z-index: 1;
   border-radius: calc(var(--radius-lg) - 1px);
   overflow: hidden;
   background: var(--stage-bg);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.55);
 }
 
 .neon-stage__corner {
@@ -655,8 +618,7 @@ a:active {
     transition-duration: 0.01ms !important;
   }
 
-  .neon-stage__glow::before,
-  .neon-stage__border::before {
+  .neon-stage__spin {
     animation: none !important;
   }
 }
