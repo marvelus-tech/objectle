@@ -1,29 +1,33 @@
-# Objectle Design System — Style Lock
+# Objectle Design System — Style Lock (Soft Prism)
 
-**Target aesthetic:** Museum light studio × Wordle ritual × Apple restraint  
+**Target aesthetic:** Soft Prism: futuristic LIGHT design. Museum light studio craft, warm paper field, dark text, and a single dual-tone neon hairline (cyan + soft violet) that moves gently around the 3D stage.  
 **Demo context:** Full-screen host + guest mobile QR handoff, room audience  
 **Theme:** Light ONLY (no dark mode)
+
+**Not this:** dark cyberpunk, purple-pink gradient blobs, floating neon orbs, neon text.
 
 ---
 
 ## Design Principles
 
 ### Figure/Ground Hierarchy
-1. **Hero stage**: 3D viewer is the theater focal point — gallery plinth presentation
-2. **Guest QR**: Second focal point, large (≥240px), always visible, framed for room scanning
-3. **Tool timeline**: Editorial director's log, side rail, persistent
+1. **Hero stage**: 3D viewer is the theater focal point. The prism frame is the only glowing element on the page.
+2. **Guest QR**: Second focal point, large (≥240px), always visible, charcoal frame for room scanning
+3. **Tool timeline**: Editorial director's log, side rail, persistent, white card with prism hairline
 4. **Human actions**: One primary (guess), one guest (scan), clear Fitts targets
 
 ### Perception Rules
-- **Von Restorff**: ONE accent color for primary actions/QR frame (clay red)
-- **Hick's Law**: Reduce competing CTAs — no blue+green button soup
+- **Von Restorff**: the neon pair is the signature and is reserved for: stage frame glow, focus rings, live / in-motion dots, the reveal meter, and 2px card hairlines. Buttons and the QR frame are charcoal so the stage stays the brightest thing in the room.
+- **Hick's Law**: Reduce competing CTAs. One charcoal primary, hairline ghosts for everything else
 - **Gestalt**: Clear clustering, fewer borders, soft elevation over heavy strokes
 - **Progression ritual**: Zoom locks and reveal tiers feel like ceremony meters, not debug badges
+- **Contrast**: raw neon hexes never carry small text. Use `--neon-a-ink` / `--neon-b-ink` (AA on white) for tinted labels.
 
 ### Motion Budget (Premium Restraint)
 - **Purpose-driven**: Feedback + attention + delight sparingly
 - **Interruptible**: Respect prefers-reduced-motion
 - **Timing**: 120–280ms range, ease-out bias, avoid constant animation
+- **The one allowed ambient loop**: the prism chase on the stage frame (18s, linear, transform-only). Nothing else loops.
 - **What NOT to animate**: Looping backgrounds, number shimmer, decoration for decoration
 
 ---
@@ -32,7 +36,7 @@
 
 ### Foundation
 ```css
---field: #F6F3EC;          /* Warm off-white studio background */
+--field: #F7F4EE;          /* Warm paper studio background */
 --surface: #FFFFFF;         /* Cards, panels, inputs */
 --surface-subtle: #FEFDFB; /* Very subtle lift */
 ```
@@ -45,13 +49,32 @@
 --ink-muted: #999999;       /* Disabled, placeholder */
 ```
 
-### Accent (Clay Terracotta)
+### Accent (Prism Charcoal)
 ```css
---accent: #B8503C;          /* Primary CTA, QR frame, focus ring */
---accent-hover: #9A3D2E;    /* Hover/pressed state */
---accent-subtle: #F4E8E5;   /* Wash for backgrounds */
---accent-border: #D6816F;   /* Soft borders when needed */
+--accent: #22222A;          /* Primary CTA, QR frame, attempt dots */
+--accent-hover: #0F0F14;    /* Hover/pressed state */
+--accent-subtle: #EEF0F4;   /* Cool wash for pills and hover */
+--accent-border: #C8CAD2;   /* Soft borders when needed */
 ```
+
+### Neon Pair (Soft Prism signature)
+```css
+--neon-a: #3DD6C3;          /* Cyan: stage hairline, focus ring, live dot */
+--neon-b: #8B7CFF;          /* Soft violet: stage hairline, working theory */
+--neon-a-ink: #0F8F82;      /* Cyan-tinted TEXT, AA on white */
+--neon-b-ink: #5A4BD6;      /* Violet-tinted TEXT, AA on white */
+--neon-a-wash: #E9F9F6;     /* Cyan background wash */
+--neon-b-wash: #F0EEFF;     /* Violet background wash */
+--neon-a-soft: rgba(61, 214, 195, 0.22);   /* Glow layer */
+--neon-b-soft: rgba(139, 124, 255, 0.20);  /* Glow layer */
+--neon-ring: 0 0 0 3px rgba(61, 214, 195, 0.30);  /* Input focus */
+--prism-line: linear-gradient(90deg, var(--neon-a), var(--neon-b));
+```
+
+**Usage contract**
+- Raw `--neon-a` / `--neon-b`: lines, dots, glow only. Never body or label text.
+- `--neon-a-*` = motion / live / tool activity. `--neon-b-*` = agent reasoning ("working theory").
+- Neon never appears on buttons. Buttons are charcoal (primary) or hairline ghost.
 
 ### Semantic
 ```css
@@ -65,7 +88,7 @@
 
 ### 3D Stage
 ```css
---stage-bg: #EDEDEB;        /* Canvas background, cooler than field */
+--stage-bg: #F0EEEA;        /* Canvas background, a hair cooler than field */
 --stage-shadow: rgba(26, 26, 26, 0.12);
 --clay-silhouette: #1A1A1A; /* Reveal tier 0 */
 --clay-mid: #B8AFA3;        /* Reveal tier 1 */
@@ -152,7 +175,7 @@
 ## Component Specifications
 
 ### Buttons
-**Primary (Accent):**
+**Primary (`.btn-primary`, charcoal):**
 - Background: `--accent`, text: white
 - Hover: `--accent-hover`
 - Active: scale 0.98, 140ms ease-out
@@ -160,39 +183,68 @@
 - Border radius: `--radius-md`
 - Font: `--font-ui`, 500 weight, `--text-base`
 
-**Secondary (Ghost):**
-- Background: transparent, border: `--border`, text: `--ink`
-- Hover: background `--info-bg`
+**Secondary (`.btn-ghost`, hairline):**
+- Background: `--surface`, border: `1px --border`, text: `--ink`
+- Hover: background `--accent-subtle`, border `--border-strong`
 - Same sizing/motion as primary
 
 **Disabled:**
 - Opacity: 0.4, cursor: not-allowed
 
 ### Inputs
-- Background: `--surface`, border: `--border`
-- Focus: border `--accent`, shadow `0 0 0 3px var(--accent-subtle)`
+- Background: `--surface`, border: `1px --border`
+- Focus: border `--neon-a`, shadow `--neon-ring`
+- Focus-visible outline everywhere: `2px solid --neon-a`, offset 3px
 - Padding: `--space-3` `--space-4`
 - Border radius: `--radius-md`
 - Font: `--font-ui`, 400 weight, `--text-base`
 - Placeholder: `--ink-muted`
 
 ### Cards
-- Background: `--surface`, border: `--border-subtle` (optional)
+- Background: `--surface`, border: `1px --border-subtle`
 - Shadow: `--shadow-sm` for lift
-- Padding: `--space-6`
-- Border radius: `--radius-lg`
+- Padding: `--space-5` to `--space-6`
+- Border radius: `--radius-xl`
+- Optional `.prism-hairline`: 2px `--prism-line` along the top edge. Used on the tool timeline and the pass card only.
+
+### Prism Stage Frame (`.prism-frame`)
+The hero. One 2px dual-tone hairline that slowly chases around the stage plus a soft static glow.
+
+```
+.prism-frame            padding 2px, radius 20px, overflow hidden, isolation isolate
+.prism-frame::before    inset -100%, conic-gradient(neon-a, neon-b, pale, neon-a, neon-b, pale, neon-a)
+                        animation prismChase 18s linear infinite  (transform: rotate 360deg)
+.prism-frame__inner     radius 18px, overflow hidden, background --stage-bg
+.stage-corners          viewfinder ticks, inset 14px, 14px x 1.5px, --ink-secondary at 0.6
+```
+
+Glow (static, layered box-shadow on `.prism-frame`):
+```css
+0 0 0 1px rgba(255,255,255,0.9),   /* crisp white keyline */
+0 0 20px var(--neon-a-soft),       /* cyan halo */
+0 10px 44px var(--neon-b-soft),    /* violet drop */
+var(--shadow-md);                  /* grounding */
+```
+
+Rules:
+- The frame sits directly on `--field`, not inside a white card, so the glow has room to breathe.
+- Alpha on glow layers stays at or under 0.22. Brighter reads as cyberpunk.
+- The chase is transform-only (rotating a pre-painted gradient), so it runs on the compositor at 60fps with no per-frame paint.
+- Reduced motion: `::before` becomes a static `linear-gradient(135deg, neon-a, neon-b)` with no animation. The glow stays.
 
 ### QR Card (PassCard)
 - Size: ≥240px QR code
-- Frame: `--accent` border, `--shadow-md`
-- Background: `--surface`
-- Label above: `--font-display`, `--text-xl`, `--ink`
+- Card: `--surface`, `1px --border-subtle`, `.prism-hairline` top
+- QR well: pure `#FFFFFF`, `2px solid --accent` frame (charcoal keeps scan contrast high; no neon near the code)
+- Label: `--font-display`, `--ink`
 - Copy below: `--font-ui`, `--text-sm`, `--ink-secondary`
+- Connection pill: `--neon-a-wash` / `--neon-a-ink` when live, otherwise neutral
 
 ### Tool Log Entry
 - Padding: `--space-4`
-- Border-left: `3px solid --accent-border`
-- Background on hover: `--info-bg`
+- Border-left: `3px solid` state color: `--neon-a` running, `--success` complete, `--error` failed
+- Working theory entries: `--neon-b-wash` background, `--neon-b` border-left, `--neon-b-ink` eyebrow
+- Header: white, eyebrow "Agent tool timeline", `Step N` pill in `--accent-subtle`
 - Enter animation: translateY(8px) + opacity 0→1, 200ms ease-out, 40ms stagger
 
 ### Facet Chips (Guess History)
@@ -204,10 +256,14 @@
 - Pop animation on correct: scale 1→1.1→1, 240ms ease with slight overshoot
 
 ### Progression Chrome
-- Container: subtle `--info-bg` background, `--radius-md`
-- Zoom lock indicators: `--font-ui`, `--text-sm`, `--ink-tertiary`
-- Reveal tier bar: horizontal meter, filled sections in `--accent`, unfilled in `--border`
+- Container: `--surface` card, `--radius-xl`
+- Zoom lock indicators: unlocked `--accent` fill, locked `--surface` with `--border`
+- Reveal tier bar: horizontal meter, fill is `--prism-line` at 0.55 opacity on `--info-bg`
 - Ritual feel: soft borders, clear segmentation
+
+### Attempt Dots (GuessHistory)
+- Six 10px circles, `1.5px` border. Used: `--accent` fill. Remaining: hollow, `--border-strong`
+- Sits next to the "Guess history" heading with an `N / 6` tabular count
 
 ---
 
@@ -237,15 +293,30 @@
 - **Tier 3 (full studio):** color `--clay-studio`, roughness 0.4, clearer detail
 
 ### Canvas Frame
-- Background: `--stage-bg`
+- Background: `--stage-bg` (`#F0EEEA`)
 - ContactShadows: opacity 0.2, blur 3, position y=-1
-- Cyclorama back-plane: same as stage-bg for seamless studio
-- Outer frame padding: `--space-8` to create gallery plinth effect
-- Optional: subtle inset shadow on canvas wrapper for depth
+- Cyclorama back-plane: `#F0EEEA` and plinth `#E3DED6`, both `MeshBasicMaterial` with `toneMapped={false}`. Unlit on purpose: the reveal ritual dims the object, never the room, so the stage stays light at tier 0.
+- Outer frame: `.prism-frame` (see above). No white card between the frame and the field.
+- Materials and lights stay in the light gallery register. Neon lives in CSS only; never tint Three.js lights cyan or violet.
 
 ---
 
 ## Animation Vocabulary
+
+### Prism Chase (stage frame only)
+```css
+@keyframes prismChase { to { transform: rotate(360deg); } }
+.prism-frame::before { animation: prismChase 18s linear infinite; will-change: transform; }
+
+@media (prefers-reduced-motion: reduce) {
+  .prism-frame::before {
+    animation: none;
+    inset: 0;
+    background: linear-gradient(135deg, var(--neon-a), var(--neon-b));
+  }
+}
+```
+Why 18s: slow enough to read as ambient light, not a loading spinner. Why linear: any easing makes the highlight lurch.
 
 ### Button Press
 ```css
@@ -298,15 +369,19 @@ animation: fadeScaleIn 220ms ease-out;
 
 ## Visual Blocklist (Do NOT Use)
 
-❌ **Purple-pink gradients** (SaaS cliché)  
+❌ **Purple-pink gradient blobs** (SaaS cliché; the prism hairline is a 2px line, not a background)  
+❌ **Dark cyberpunk** (Soft Prism is a LIGHT design; neon lives on paper)  
+❌ **Floating neon orbs / bokeh** (no decorative glow anywhere but the stage frame)  
+❌ **Neon-colored text** (use `--neon-*-ink` variants, AA only)  
+❌ **Neon on buttons or the QR frame** (charcoal keeps scan contrast and CTA hierarchy)  
 ❌ **Inter as the ONLY font** (system-ui fallback alone is bland)  
 ❌ **Lucide icon soup** (emoji as icons everywhere)  
 ❌ **Unsolicited dark mode** (light theme ONLY per brief)  
 ❌ **Generic bento grids** as decoration  
-❌ **Constant shimmer/pulse animations** (breaks premium restraint)  
+❌ **Constant shimmer/pulse animations** (the prism chase is the single ambient loop)  
 ❌ **Heavy black borders everywhere** (prefer soft elevation)  
 ❌ **Competing blue + green CTAs** (Von Restorff violation)  
-❌ **System-ui as the only typeface** (no editorial voice)
+❌ **Em or en dashes in UI copy** (use periods, commas, or colons)
 
 ---
 
@@ -359,10 +434,11 @@ Static page (`public/pass/index.html`) must match the style lock:
 ### Why Warm Studio (Not Cool Gray)
 Museum/gallery spaces use warm whites to make objects feel inviting and premium. Cool grays (#f0f0f0) read as tech utility; warm off-white (#F6F3EC) reads as craft.
 
-### Why Clay Terracotta (Not Blue)
-- **Von Restorff:** ONE distinct accent vs. blue+green competition
-- **3D context:** Clay materials suggest sculpture/pottery (aligns with object guessing)
-- **Contrast:** Terracotta pops against warm field without neon harshness
+### Why Charcoal CTAs + a Neon Pair (Not Terracotta)
+- **Von Restorff:** the glow around the stage is the one distinct signal. Giving buttons a saturated color would compete with it.
+- **Room scanning:** a charcoal QR frame is the highest-contrast frame possible on white; neon near the code hurts scan reliability.
+- **Futuristic light:** cyan + soft violet on warm paper reads as instrument / lab light rather than club neon. The pair is held to hairlines and low-alpha glow so it stays premium.
+- **Semantics:** cyan = motion and live state, violet = agent reasoning. Green and red stay reserved for correct and wrong.
 
 ### Why Newsreader Display
 Editorial serif gives Objectle a "daily ritual" quality (like Wordle's newspaper feel) vs. sans-only tech blandness. Optical sizing ensures it looks refined at 32px+ wordmark scale.
@@ -383,17 +459,20 @@ Before shipping, verify:
 - [ ] NO system-ui as the only font (editorial display loaded)
 - [ ] NO competing blue + green CTAs
 - [ ] NO emoji FAB (replaced with craft agent panel entry)
-- [ ] QR is ≥240px, always visible, framed in accent
+- [ ] NO raw neon on text, buttons, or the QR frame
+- [ ] NO em or en dashes in UI copy
+- [ ] QR is ≥240px, always visible, framed in charcoal
 - [ ] Tool log has enter animations with stagger
 - [ ] Buttons have press feedback (scale 0.98)
 - [ ] Correct guesses have facet pop animation
-- [ ] 3D stage has gallery plinth framing
-- [ ] Pass page matches style lock (fonts, colors, layout)
+- [ ] 3D stage has the prism frame with glow under 0.22 alpha
+- [ ] Prism chase is transform-only and falls back to a static gradient under reduced motion
+- [ ] Pass page matches style lock (fonts, colors, layout, hairline)
 - [ ] Build tested with `/objectle/` base path
 - [ ] `prefers-reduced-motion` respected everywhere
 
 ---
 
 **Status:** LOCKED 🔒  
-**Effective:** 2026-09-06  
-**Owner:** Objectle Demo Elevation (Cloud Agent bc-...)
+**Effective:** 2026-09-10 (Soft Prism revision; supersedes the 2026-09-06 clay terracotta lock)  
+**Owner:** Objectle Soft Prism Elevation (Cloud Agent)
