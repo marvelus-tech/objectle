@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../lib/store';
 import { api } from '../lib/api';
+import { useTheaterStore } from '../lib/theater';
 
 export default function GuessInput() {
   const [input, setInput] = useState('');
@@ -22,13 +23,17 @@ export default function GuessInput() {
     
     setSubmitting(true);
     setError(null);
+    const guess = input.trim();
+    const eventId = useTheaterStore
+      .getState()
+      .startTool('submit_guess', { name: guess }, 'human');
     
     try {
-      const result = await api.checkGuess(playerId, input.trim());
+      const result = await api.checkGuess(playerId, guess);
       
       addGuess({
         guessNumber: result.guessNumber,
-        guessText: input.trim(),
+        guessText: guess,
         correct: result.correct,
         facets: result.facets,
       });
@@ -36,11 +41,28 @@ export default function GuessInput() {
       if (result.gameOver) {
         setGameOver(result.won);
       }
+
+      useTheaterStore.getState().completeTool(
+        eventId,
+        result.correct
+          ? `“${guess}” is correct.`
+          : `“${guess}” was not the object.`,
+        true,
+        {
+          guess,
+          correct: result.correct,
+          remaining: Math.max(0, 6 - result.guessNumber),
+          facets: result.facets,
+        },
+      );
       
       setInput('');
     } catch (error) {
       console.error('Failed to submit guess:', error);
       setError('Failed to submit guess. Please try again.');
+      useTheaterStore
+        .getState()
+        .completeTool(eventId, 'The guess could not be submitted.', false);
     } finally {
       setSubmitting(false);
     }

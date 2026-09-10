@@ -9,6 +9,7 @@ import AgentPanel from './components/AgentPanel';
 import ToolLog from './components/ToolLog';
 import PassCard from './components/PassCard';
 import ProgressionChrome from './components/ProgressionChrome';
+import HypothesisBoard from './components/HypothesisBoard';
 import { useGameStore } from './lib/store';
 import { api } from './lib/api';
 import { registerWebMCPTools } from './lib/webmcp';
@@ -90,6 +91,7 @@ export default function App() {
             </div>
           </div>
           <ProgressionChrome />
+          <HypothesisBoard />
         </div>
         
         {/* Side Rail: Tool Timeline + Game */}

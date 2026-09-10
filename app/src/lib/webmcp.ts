@@ -5,6 +5,7 @@
 
 import { useGameStore } from './store';
 import { api } from './api';
+import { GuessDetail, TheaterSource, useTheaterStore } from './theater';
 
 export interface WebMCPTool {
   name: string;
@@ -14,46 +15,10 @@ export interface WebMCPTool {
     properties: Record<string, any>;
     required?: string[];
   };
-  handler: (args: any) => Promise<{ content: Array<{ type: string; text: string }> }>;
-}
-
-// Tool execution log for dual watch UI
-export interface ToolExecution {
-  id: string;
-  timestamp: number;
-  tool: string;
-  args: any;
-  result: string;
-  success: boolean;
-}
-
-let toolExecutions: ToolExecution[] = [];
-let executionCallbacks: Array<(executions: ToolExecution[]) => void> = [];
-
-export function subscribeToToolExecutions(callback: (executions: ToolExecution[]) => void) {
-  executionCallbacks.push(callback);
-  callback(toolExecutions); // Send current state
-  return () => {
-    executionCallbacks = executionCallbacks.filter(cb => cb !== callback);
-  };
-}
-
-function logToolExecution(tool: string, args: any, result: string, success: boolean) {
-  const execution: ToolExecution = {
-    id: `${Date.now()}-${Math.random()}`,
-    timestamp: Date.now(),
-    tool,
-    args,
-    result,
-    success,
-  };
-  toolExecutions.push(execution);
-  // Keep last 50 executions
-  if (toolExecutions.length > 50) {
-    toolExecutions = toolExecutions.slice(-50);
-  }
-  // Notify all subscribers
-  executionCallbacks.forEach(cb => cb(toolExecutions));
+  handler: (
+    args: any,
+    source?: TheaterSource,
+  ) => Promise<{ content: Array<{ type: string; text: string }> }>;
 }
 
 // Define WebMCP tools
@@ -76,14 +41,22 @@ export const webmcpTools: WebMCPTool[] = [
       },
       required: ['axis', 'degrees'],
     },
-    handler: async (args: { axis: 'x' | 'y' | 'z'; degrees: number }) => {
+    handler: async (
+      args: { axis: 'x' | 'y' | 'z'; degrees: number },
+      source = 'agent',
+    ) => {
+      const eventId = useTheaterStore.getState().startTool(
+        'rotate_object',
+        { ...args },
+        source,
+      );
       const store = useGameStore.getState();
       store.rotate(args.axis, args.degrees);
       
       const newState = useGameStore.getState();
       const result = `Rotated object ${args.degrees}° around ${args.axis}-axis. Current rotation: X=${newState.rotationX}°, Y=${newState.rotationY}°, Z=${newState.rotationZ}°`;
       
-      logToolExecution('rotate_object', args, result, true);
+      useTheaterStore.getState().completeTool(eventId, result, true);
       
       return {
         content: [{ type: 'text', text: result }],
@@ -105,13 +78,16 @@ export const webmcpTools: WebMCPTool[] = [
       },
       required: ['level'],
     },
-    handler: async (args: { level: number }) => {
+    handler: async (args: { level: number }, source = 'agent') => {
+      const eventId = useTheaterStore
+        .getState()
+        .startTool('zoom', { ...args }, source);
       const store = useGameStore.getState();
       const maxZoom = Math.min(store.revealTier + 1, 3);
       
       if (args.level > maxZoom) {
         const result = `Zoom level ${args.level} is locked. Maximum available: ${maxZoom}. Make more guesses to unlock higher zoom levels.`;
-        logToolExecution('zoom', args, result, false);
+        useTheaterStore.getState().completeTool(eventId, result, false);
         return {
           content: [{ type: 'text', text: result }],
         };
@@ -120,7 +96,7 @@ export const webmcpTools: WebMCPTool[] = [
       store.zoom(args.level);
       const result = `Zoom set to level ${args.level}/3. Camera distance adjusted.`;
       
-      logToolExecution('zoom', args, result, true);
+      useTheaterStore.getState().completeTool(eventId, result, true);
       
       return {
         content: [{ type: 'text', text: result }],
@@ -134,7 +110,8 @@ export const webmcpTools: WebMCPTool[] = [
       type: 'object',
       properties: {},
     },
-    handler: async () => {
+    handler: async (_args, source = 'agent') => {
+      const eventId = useTheaterStore.getState().startTool('read_view', {}, source);
       const store = useGameStore.getState();
       
       const viewDescriptions = [
@@ -157,7 +134,7 @@ export const webmcpTools: WebMCPTool[] = [
       const zoom = `Zoom level: ${store.zoomLevel}/3.`;
       const result = `${desc.detailed}\n\n${rotation}\n${zoom}\n\nGuesses made: ${store.guesses.length}/6`;
       
-      logToolExecution('read_view', {}, result, true);
+      useTheaterStore.getState().completeTool(eventId, result, true);
       
       return {
         content: [{ type: 'text', text: result }],
@@ -177,7 +154,10 @@ export const webmcpTools: WebMCPTool[] = [
       },
       required: ['name'],
     },
-    handler: async (args: { name: string }) => {
+    handler: async (args: { name: string }, source = 'agent') => {
+      const eventId = useTheaterStore
+        .getState()
+        .startTool('submit_guess', { ...args }, source);
       const store = useGameStore.getState();
       
       try {
@@ -202,7 +182,7 @@ Scale: ${result.facets.scale.value} ${result.facets.scale.match ? '✓' : '✗'}
         let message = `Guess #${result.guessNumber}: "${args.name}"\n\n`;
         
         if (result.correct) {
-          message += '🎉 CORRECT! You won!\n\n';
+          message += 'CORRECT! You won!\n\n';
         } else {
           message += `Incorrect. ${6 - result.guessNumber} guesses remaining.\n\n`;
         }
@@ -218,14 +198,20 @@ Scale: ${result.facets.scale.value} ${result.facets.scale.match ? '✓' : '✗'}
           }
         }
         
-        logToolExecution('submit_guess', args, message, true);
+        const detail: GuessDetail = {
+          guess: args.name,
+          correct: result.correct,
+          remaining: Math.max(0, 6 - result.guessNumber),
+          facets: result.facets,
+        };
+        useTheaterStore.getState().completeTool(eventId, message, true, detail);
         
         return {
           content: [{ type: 'text', text: message }],
         };
       } catch (error) {
         const errorMsg = `Error checking guess: ${error}`;
-        logToolExecution('submit_guess', args, errorMsg, false);
+        useTheaterStore.getState().completeTool(eventId, errorMsg, false);
         return {
           content: [{ type: 'text', text: errorMsg }],
         };
@@ -248,7 +234,7 @@ export function registerWebMCPTools() {
       name: tool.name,
       description: tool.description,
       inputSchema: tool.inputSchema,
-      handler: tool.handler,
+      handler: (args: unknown) => tool.handler(args, 'agent'),
     })));
     
     console.log('WebMCP tools registered:', webmcpTools.map(t => t.name));
@@ -267,7 +253,7 @@ export async function callWebMCPTool(toolName: string, args: any): Promise<strin
   }
   
   try {
-    const result = await tool.handler(args);
+    const result = await tool.handler(args, 'panel');
     return result.content[0].text;
   } catch (error) {
     throw new Error(`Tool execution failed: ${error}`);

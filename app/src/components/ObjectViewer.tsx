@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment, ContactShadows, PerspectiveCamera, Lightformer } from '@react-three/drei';
 import { useGameStore } from '../lib/store';
 import * as THREE from 'three';
+import StageCaption from './StageCaption';
 
 interface ObjectViewerProps {
   objectKey: string;
@@ -234,6 +235,7 @@ export default function ObjectViewer({ objectKey }: ObjectViewerProps) {
       }}>
         Zoom {zoomLevel + 1}/4 · Reveal {revealTier + 1}/4
       </div>
+      <StageCaption />
     </div>
   );
 }
