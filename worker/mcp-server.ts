@@ -8,6 +8,7 @@
  * - rotate_object(axis, degrees)
  * - zoom(level)
  * - read_view()
+ * - publish_status(headline, rationale, candidates, next, confidence)
  * - submit_guess(name)
  */
 
@@ -18,8 +19,40 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 
+interface GuessResult {
+  correct: boolean;
+  guessNumber: number;
+  facets: {
+    category: { value: string; match: boolean };
+    material: { value: string; match: boolean };
+    scale: { value: string; match: boolean };
+  };
+  gameOver: boolean;
+  won: boolean;
+}
+
+interface PublishedStatus {
+  headline: string;
+  rationale?: string;
+  candidates?: Array<{ name: string; confidence?: number; evidence?: string }>;
+  next?: string;
+  confidence?: 'low' | 'medium' | 'high';
+}
+
+interface McpGameState {
+  rotationX: number;
+  rotationY: number;
+  rotationZ: number;
+  zoomLevel: number;
+  revealTier: number;
+  guesses: GuessResult[];
+  playerId: string | null;
+  objectKey: string | null;
+  lastStatus: PublishedStatus | null;
+}
+
 // Game state (in production, this would be shared via D1 or Durable Objects)
-let gameState = {
+const gameState: McpGameState = {
   rotationX: 15,
   rotationY: 30,
   rotationZ: 0,
@@ -28,6 +61,7 @@ let gameState = {
   guesses: [],
   playerId: null,
   objectKey: null,
+  lastStatus: null,
 };
 
 // View descriptions based on reveal tier (never include the answer)
@@ -113,6 +147,36 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
+        name: 'publish_status',
+        description: 'Share a short public working-theory update for the human audience. Do not send private chain-of-thought.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            headline: { type: 'string', maxLength: 80 },
+            rationale: { type: 'string', maxLength: 200 },
+            candidates: {
+              type: 'array',
+              maxItems: 3,
+              items: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string', maxLength: 40 },
+                  confidence: { type: 'number', minimum: 0, maximum: 100 },
+                  evidence: { type: 'string', maxLength: 100 },
+                },
+                required: ['name'],
+              },
+            },
+            next: { type: 'string', maxLength: 100 },
+            confidence: {
+              type: 'string',
+              enum: ['low', 'medium', 'high'],
+            },
+          },
+          required: ['headline'],
+        },
+      },
+      {
         name: 'submit_guess',
         description: 'Submit a guess for what the object is. Returns Worldle-style facet feedback (category, material, scale) and whether the guess is correct. Synonym matching is supported (e.g., bike = bicycle).',
         inputSchema: {
@@ -195,6 +259,62 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
+      case 'publish_status': {
+        const input = (args ?? {}) as Record<string, unknown>;
+        const headline =
+          typeof input.headline === 'string'
+            ? input.headline.replace(/\s+/g, ' ').trim().slice(0, 80)
+            : '';
+
+        if (!headline) {
+          throw new Error('A short headline is required.');
+        }
+
+        const candidates = Array.isArray(input.candidates)
+          ? input.candidates.slice(0, 3).flatMap(candidate => {
+              if (!candidate || typeof candidate !== 'object') return [];
+              const item = candidate as Record<string, unknown>;
+              if (typeof item.name !== 'string' || !item.name.trim()) return [];
+              return [{
+                name: item.name.trim().slice(0, 40),
+                confidence:
+                  typeof item.confidence === 'number'
+                    ? Math.min(100, Math.max(0, Math.round(item.confidence)))
+                    : undefined,
+                evidence:
+                  typeof item.evidence === 'string'
+                    ? item.evidence.replace(/\s+/g, ' ').trim().slice(0, 100)
+                    : undefined,
+              }];
+            })
+          : undefined;
+
+        gameState.lastStatus = {
+          headline,
+          rationale:
+            typeof input.rationale === 'string'
+              ? input.rationale.replace(/\s+/g, ' ').trim().slice(0, 200)
+              : undefined,
+          candidates,
+          next:
+            typeof input.next === 'string'
+              ? input.next.replace(/\s+/g, ' ').trim().slice(0, 100)
+              : undefined,
+          confidence: ['low', 'medium', 'high'].includes(String(input.confidence))
+            ? (input.confidence as PublishedStatus['confidence'])
+            : undefined,
+        };
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Public status prepared: ${headline}`,
+            },
+          ],
+        };
+      }
+
       case 'submit_guess': {
         const { name: guessName } = args as { name: string };
         
@@ -217,11 +337,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             throw new Error(`Worker API error: ${response.status}`);
           }
           
-          const result = await response.json();
+          const result = await response.json<GuessResult>();
           
           // Update game state
           gameState.guesses.push(result);
-          const wrongGuesses = gameState.guesses.filter((g: any) => !g.correct).length;
+          const wrongGuesses = gameState.guesses.filter(guess => !guess.correct).length;
           gameState.revealTier = Math.min(
             wrongGuesses >= 5 ? 3 : wrongGuesses >= 3 ? 2 : wrongGuesses >= 1 ? 1 : 0,
             3
@@ -236,7 +356,7 @@ Scale: ${result.facets.scale.value} ${result.facets.scale.match ? '✓' : '✗'}
           let message = `Guess #${result.guessNumber}: "${guessName}"\n\n`;
           
           if (result.correct) {
-            message += '🎉 CORRECT! You won!\n\n';
+            message += 'CORRECT! You won!\n\n';
           } else {
             message += `Incorrect. ${6 - result.guessNumber} guesses remaining.\n\n`;
           }

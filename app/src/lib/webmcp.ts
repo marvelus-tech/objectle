@@ -5,7 +5,12 @@
 
 import { useGameStore } from './store';
 import { api } from './api';
-import { GuessDetail, TheaterSource, useTheaterStore } from './theater';
+import {
+  GuessDetail,
+  sanitizePublishedStatus,
+  TheaterSource,
+  useTheaterStore,
+} from './theater';
 
 export interface WebMCPTool {
   name: string;
@@ -139,6 +144,71 @@ export const webmcpTools: WebMCPTool[] = [
       return {
         content: [{ type: 'text', text: result }],
       };
+    },
+  },
+  {
+    name: 'publish_status',
+    description: 'Share a concise public working-theory update for the human audience. Use this instead of private chain-of-thought. Publish before a guess and after interpreting facet feedback.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        headline: {
+          type: 'string',
+          maxLength: 80,
+          description: 'Plain-language summary of the current decision',
+        },
+        rationale: {
+          type: 'string',
+          maxLength: 200,
+          description: 'Brief evidence-based explanation intended for the audience',
+        },
+        candidates: {
+          type: 'array',
+          maxItems: 3,
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', maxLength: 40 },
+              confidence: { type: 'number', minimum: 0, maximum: 100 },
+              evidence: { type: 'string', maxLength: 100 },
+            },
+            required: ['name'],
+          },
+        },
+        next: {
+          type: 'string',
+          maxLength: 100,
+          description: 'The next intended action',
+        },
+        confidence: {
+          type: 'string',
+          enum: ['low', 'medium', 'high'],
+        },
+      },
+      required: ['headline'],
+    },
+    handler: async (args: unknown, source = 'agent') => {
+      try {
+        const status = sanitizePublishedStatus(args);
+        useTheaterStore.getState().publishStatus({ ...status, source });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Public status shared: ${status.headline}`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Status was not shared: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
     },
   },
   {

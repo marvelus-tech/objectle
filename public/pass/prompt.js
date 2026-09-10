@@ -32,12 +32,15 @@
       "   - read_view() - See current 3D view description\n" +
       "   - rotate_object(axis, degrees) - Rotate for different angles (x/y/z, ±15-45°)\n" +
       "   - zoom(level) - Zoom closer (0-3, unlocks with wrong guesses)\n" +
+      "   - publish_status(headline, rationale, candidates, next, confidence) - Share a concise public working theory\n" +
       "   - submit_guess(name) - Submit your guess\n" +
       "3. You have 6 guesses. Facet feedback shows category/material/scale matches.\n" +
-      "4. Your human is watching the 3D viewer and tool timeline on their screen as you play.\n\n" +
+      "4. Your human is watching the 3D viewer and agent theater on their screen as you play.\n" +
+      "5. Use publish_status before each guess and after interpreting feedback. Share only a short public summary, never private chain-of-thought.\n\n" +
       "Strategy:\n" +
       "- Start with read_view() to see the silhouette\n" +
       "- Rotate around y-axis to see different angles\n" +
+      "- Keep up to three candidates with confidence percentages\n" +
       "- Make informed guesses based on shape, facets, and details\n" +
       "- Zoom unlocks progressively (Heardle-style)\n\n" +
       "Play now!"

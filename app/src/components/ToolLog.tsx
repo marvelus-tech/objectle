@@ -50,6 +50,23 @@ export default function ToolLog() {
                     <span style={styles.entryEyebrow}>Working theory</span>
                     <strong style={styles.entryHeadline}>{event.headline}</strong>
                     {event.rationale && <p style={styles.result}>{event.rationale}</p>}
+                    {event.candidates && (
+                      <div style={styles.statusCandidates}>
+                        {event.candidates.map(candidate => (
+                          <span key={candidate.name} style={styles.statusCandidate}>
+                            {candidate.name}
+                            {typeof candidate.confidence === 'number'
+                              ? ` ${candidate.confidence}%`
+                              : ''}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {event.next && (
+                      <p style={styles.next}>
+                        <strong>Next:</strong> {event.next}
+                      </p>
+                    )}
                   </article>
                 ),
               )
@@ -288,6 +305,26 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--ink-secondary)',
     fontSize: 'var(--text-xs)',
     lineHeight: 1.5,
+  },
+  statusCandidates: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 'var(--space-1)',
+    marginTop: 'var(--space-3)',
+  },
+  statusCandidate: {
+    padding: '4px 7px',
+    borderRadius: '999px',
+    background: 'var(--surface)',
+    color: 'var(--accent)',
+    fontSize: '10px',
+    fontWeight: 600,
+    textTransform: 'capitalize',
+  },
+  next: {
+    marginTop: 'var(--space-3)',
+    color: 'var(--ink-secondary)',
+    fontSize: '11px',
   },
   detailButton: {
     marginTop: 'var(--space-3)',

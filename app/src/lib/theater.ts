@@ -53,6 +53,14 @@ export interface StatusTheaterEvent extends TheaterEventBase {
 
 export type TheaterEvent = ToolTheaterEvent | StatusTheaterEvent;
 
+export interface PublishStatusInput {
+  headline: string;
+  rationale?: string;
+  candidates?: Candidate[];
+  next?: string;
+  confidence?: Confidence;
+}
+
 interface TheaterState {
   events: TheaterEvent[];
   startTool: (
@@ -77,6 +85,57 @@ let eventPublisher: EventPublisher | null = null;
 
 export function setTheaterEventPublisher(publisher: EventPublisher | null) {
   eventPublisher = publisher;
+}
+
+function cleanText(value: unknown, maxLength: number) {
+  if (typeof value !== 'string') return undefined;
+  const text = value.replace(/\s+/g, ' ').trim();
+  return text ? text.slice(0, maxLength) : undefined;
+}
+
+export function sanitizePublishedStatus(input: unknown): PublishStatusInput {
+  if (!input || typeof input !== 'object') {
+    throw new Error('Status must be an object.');
+  }
+
+  const value = input as Record<string, unknown>;
+  const headline = cleanText(value.headline, 80);
+  if (!headline) throw new Error('A short headline is required.');
+
+  const confidence = ['low', 'medium', 'high'].includes(String(value.confidence))
+    ? (value.confidence as Confidence)
+    : undefined;
+  const rawCandidates = Array.isArray(value.candidates) ? value.candidates : [];
+  const candidates = rawCandidates
+    .slice(0, 3)
+    .map(candidate => {
+      const item =
+        candidate && typeof candidate === 'object'
+          ? (candidate as Record<string, unknown>)
+          : {};
+      const name = cleanText(item.name, 40);
+      if (!name) return null;
+
+      const numericConfidence =
+        typeof item.confidence === 'number'
+          ? Math.min(100, Math.max(0, Math.round(item.confidence)))
+          : undefined;
+
+      return {
+        name,
+        confidence: numericConfidence,
+        evidence: cleanText(item.evidence, 100),
+      };
+    })
+    .filter((candidate): candidate is Candidate => candidate !== null);
+
+  return {
+    headline,
+    rationale: cleanText(value.rationale, 200),
+    candidates: candidates.length ? candidates : undefined,
+    next: cleanText(value.next, 100),
+    confidence,
+  };
 }
 
 function createEventId() {

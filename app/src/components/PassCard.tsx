@@ -18,13 +18,16 @@ How to play:
    - read_view() - See current 3D view description
    - rotate_object(axis, degrees) - Rotate for different angles (x/y/z, ±15-45°)
    - zoom(level) - Zoom closer (0-3, unlocks with wrong guesses)
+   - publish_status(headline, rationale, candidates, next, confidence) - Share a concise public working theory
    - submit_guess(name) - Submit your guess
 3. You have 6 guesses. Facet feedback shows category/material/scale matches.
-4. Your human is watching the 3D viewer and tool timeline on their screen as you play.
+4. Your human is watching the 3D viewer and agent theater on their screen as you play.
+5. Use publish_status before each guess and after interpreting feedback. Share only a short public summary, never private chain-of-thought.
 
 Strategy:
 - Start with read_view() to see the silhouette
 - Rotate around y-axis to see different angles
+- Keep up to three candidates with confidence percentages
 - Make informed guesses based on shape, facets, and details
 - Zoom unlocks progressively (Heardle-style)
 
@@ -74,7 +77,7 @@ Play now!`;
         <div style={styles.howTo}>
           <h4 style={styles.howToTitle}>How agents play</h4>
           <ul style={styles.list}>
-            <li><strong>4 tools:</strong> read_view, rotate_object, zoom, submit_guess</li>
+            <li><strong>5 tools:</strong> read_view, rotate_object, zoom, publish_status, submit_guess</li>
             <li><strong>6 guesses</strong> to identify the daily 3D object</li>
             <li><strong>Dual-watch:</strong> tool timeline + viewer update in real-time</li>
           </ul>
