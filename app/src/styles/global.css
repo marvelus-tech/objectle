@@ -200,30 +200,32 @@ a:active {
 .neon-stage {
   position: relative;
   border-radius: var(--radius-lg);
-  padding: 2px;
+  padding: 3px;
   isolation: isolate;
   overflow: hidden;
-  background: #111;
+  background: #0a0a0a;
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.35),
-    0 0 18px rgba(34, 211, 238, 0.28),
-    0 0 36px rgba(232, 121, 249, 0.18);
+    0 0 0 1px rgba(255, 255, 255, 0.4),
+    0 0 22px rgba(34, 211, 238, 0.4),
+    0 0 44px rgba(232, 121, 249, 0.28);
 }
 
 .neon-stage__spin {
   position: absolute;
-  inset: -40%;
+  inset: -45%;
   z-index: 0;
   pointer-events: none;
   background: conic-gradient(
     from 0deg,
-    #22D3EE,
-    #A78BFA,
-    #E879F9,
-    #14B8A6,
-    #22D3EE
+    #67E8F9 0deg,
+    #22D3EE 60deg,
+    #A78BFA 140deg,
+    #F0ABFC 200deg,
+    #E879F9 260deg,
+    #2DD4BF 320deg,
+    #67E8F9 360deg
   );
-  animation: neonRotate 4.5s linear infinite;
+  animation: neonRotate 4s linear infinite;
 }
 
 .neon-stage__inner {
