@@ -75,10 +75,12 @@ export default function ProgressionChrome() {
 
 const styles: Record<string, React.CSSProperties> = {
   container: {
-    background: 'var(--info-bg)',
+    background: 'var(--glass)',
+    backdropFilter: 'blur(12px)',
     borderRadius: 'var(--radius-lg)',
     padding: 'var(--space-5)',
-    border: `1px solid var(--border)`,
+    border: '1px solid var(--border-subtle)',
+    boxShadow: 'var(--shadow-sm)',
   },
   section: {
     marginBottom: 'var(--space-5)',

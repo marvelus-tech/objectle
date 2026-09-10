@@ -141,7 +141,8 @@ const styles: Record<string, React.CSSProperties> = {
     width: '28px',
     height: '28px',
     borderStyle: 'solid',
-    borderColor: 'var(--accent)',
+    borderColor: 'var(--neon-cyan)',
+    boxShadow: '0 0 8px var(--neon-glow)',
   },
   confettiLayer: {
     position: 'absolute',

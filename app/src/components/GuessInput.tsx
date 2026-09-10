@@ -5,21 +5,21 @@ import { runTool } from '../lib/webmcp';
 export default function GuessInput() {
   const [input, setInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  
+
   const guesses = useGameStore(state => state.guesses);
   const gameOver = useGameStore(state => state.gameOver);
   const setError = useGameStore(state => state.setError);
-  
+
   const remainingGuesses = 6 - guesses.length;
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!input.trim() || submitting || gameOver) return;
-    
+
     setSubmitting(true);
     setError(null);
-    
+
     try {
       // Same path as agents: the room (or local fallback) updates the store for us
       const result = await runTool('submit_guess', { name: input.trim() }, 'host');
@@ -32,19 +32,23 @@ export default function GuessInput() {
       setSubmitting(false);
     }
   };
-  
+
   if (gameOver) {
     return null;
   }
-  
+
   return (
     <form onSubmit={handleSubmit} style={styles.form}>
+      <label style={styles.label} htmlFor="objectle-guess">
+        Make a guess
+      </label>
       <div style={styles.inputContainer}>
         <input
+          id="objectle-guess"
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Enter your guess..."
+          placeholder="Enter an object..."
           style={styles.input}
           disabled={submitting}
           autoComplete="off"
@@ -54,8 +58,15 @@ export default function GuessInput() {
           type="submit"
           style={styles.button}
           disabled={!input.trim() || submitting}
+          aria-label="Submit guess"
+          title="Submit guess"
         >
-          {submitting ? 'Submitting...' : 'Guess'}
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path
+              d="M3.4 20.3 21 12 3.4 3.7 3 10.2l11.2 1.8L3 13.8l.4 6.5Z"
+              fill="currentColor"
+            />
+          </svg>
         </button>
       </div>
       <p style={styles.hint}>
@@ -69,38 +80,55 @@ const styles: Record<string, React.CSSProperties> = {
   form: {
     width: '100%',
   },
+  label: {
+    display: 'block',
+    marginBottom: 'var(--space-2)',
+    fontSize: '11px',
+    fontWeight: 600,
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase',
+    color: 'var(--ink-tertiary)',
+  },
   inputContainer: {
     display: 'flex',
-    gap: 'var(--space-3)',
-    marginBottom: 'var(--space-2)',
+    alignItems: 'center',
+    gap: 0,
+    background: 'var(--surface)',
+    border: '1px solid var(--border)',
+    borderRadius: '999px',
+    boxShadow: 'var(--shadow-sm)',
+    overflow: 'hidden',
+    padding: '4px 4px 4px 16px',
   },
   input: {
     flex: 1,
-    padding: 'var(--space-3) var(--space-4)',
+    padding: '10px 8px',
     fontSize: 'var(--text-base)',
     fontFamily: 'var(--font-ui)',
-    border: `2px solid var(--border)`,
-    borderRadius: 'var(--radius-md)',
+    border: 'none',
     outline: 'none',
-    background: 'var(--surface)',
+    background: 'transparent',
     color: 'var(--ink)',
+    minWidth: 0,
+    boxShadow: 'none',
   },
   button: {
-    padding: 'var(--space-3) var(--space-6)',
-    background: 'var(--accent)',
+    display: 'grid',
+    placeItems: 'center',
+    width: 40,
+    height: 40,
+    flexShrink: 0,
+    background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-magenta))',
     color: 'white',
     border: 'none',
-    borderRadius: 'var(--radius-md)',
-    fontSize: 'var(--text-base)',
-    fontFamily: 'var(--font-ui)',
-    fontWeight: 500,
+    borderRadius: '50%',
     cursor: 'pointer',
-    minWidth: '100px',
+    boxShadow: '0 0 12px var(--neon-glow)',
   },
   hint: {
     fontSize: 'var(--text-sm)',
     fontFamily: 'var(--font-ui)',
     color: 'var(--ink-secondary)',
-    margin: 0,
+    margin: 'var(--space-2) 0 0',
   },
 };

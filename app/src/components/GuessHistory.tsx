@@ -102,11 +102,11 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 'var(--space-4)',
   },
   empty: {
-    padding: 'var(--space-8)',
+    padding: 'var(--space-5)',
     textAlign: 'center' as const,
-    background: 'var(--info-bg)',
+    background: 'var(--glass)',
     borderRadius: 'var(--radius-lg)',
-    border: `1px solid var(--border-subtle)`,
+    border: '1px solid var(--border-subtle)',
   },
   emptyText: {
     color: 'var(--ink-secondary)',

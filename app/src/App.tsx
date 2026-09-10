@@ -11,10 +11,23 @@ import PassCard from './components/PassCard';
 import ProgressionChrome from './components/ProgressionChrome';
 import HypothesisBoard from './components/HypothesisBoard';
 import StageEffects from './components/StageEffects';
+import NeonStage from './components/NeonStage';
+import AttemptsGrid from './components/AttemptsGrid';
 import { useGameStore } from './lib/store';
 import { api, isWorkerAvailable } from './lib/api';
 import { registerWebMCPTools } from './lib/webmcp';
 import { resolveRoomCode, startRoomSync } from './lib/room';
+
+function formatChallengeDate(iso: string | null): string {
+  if (!iso) return 'Today';
+  const d = new Date(`${iso}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString(undefined, {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+  });
+}
 
 export default function App() {
   const initGame = useGameStore(state => state.initGame);
@@ -22,6 +35,7 @@ export default function App() {
   const visualProfile = useGameStore(state => state.visualProfile);
   const loading = useGameStore(state => state.loading);
   const error = useGameStore(state => state.error);
+  const date = useGameStore(state => state.date);
   const setLoading = useGameStore(state => state.setLoading);
   const setError = useGameStore(state => state.setError);
   const setRoom = useGameStore(state => state.setRoom);
@@ -87,65 +101,86 @@ export default function App() {
 
   return (
     <div className="app-shell" style={styles.app}>
-      <header className="theater-header" style={styles.header}>
-        <span style={styles.roomSignal}>
-          <span
-            style={{
-              ...styles.signalDot,
-              background: agentLive ? 'var(--success)' : roomConnected ? 'var(--accent)' : 'var(--ink-muted)',
-            }}
-          />
-          {agentLive ? 'Agent live' : roomConnected ? 'Live theater' : 'Local mode'}
-        </span>
-        <h1 style={styles.title}>Objectle</h1>
-        <p style={styles.subtitle}>Daily 3D Object Guessing Game · Dual-Watch Theater</p>
-      </header>
+      <main className="theater-main">
+        {/* Left: brand + guess ritual */}
+        <aside className="brand-rail">
+          <div>
+            <div style={styles.roomSignal}>
+              <span
+                style={{
+                  ...styles.signalDot,
+                  background: agentLive
+                    ? 'var(--neon-teal)'
+                    : roomConnected
+                      ? 'var(--neon-cyan)'
+                      : 'var(--ink-muted)',
+                  animation: agentLive ? 'liveDot 1.4s ease-out infinite' : undefined,
+                }}
+              />
+              {agentLive ? 'Agent live' : roomConnected ? 'Live theater' : 'Local mode'}
+            </div>
+            <h1 className="brand-mark">Objectle</h1>
+            <p className="brand-tagline">A daily 3D object guessing game</p>
+            <p className="brand-meta">{formatChallengeDate(date)}</p>
+          </div>
 
-      <main className="theater-main" style={styles.main}>
-        <div className="stage-column" style={styles.stageColumn}>
-          <div className="viewer-frame" style={styles.viewerWrapper}>
+          <GuessInput />
+          <AttemptsGrid />
+          <GameOver />
+          <GuessHistory />
+        </aside>
+
+        {/* Center: neon stage */}
+        <div className="stage-column">
+          <NeonStage>
             <div className="viewer-stage" style={styles.viewer}>
               <ObjectViewer visualProfile={visualProfile} />
               <StageEffects />
             </div>
-            <div style={styles.controls}>
-              <ViewerControls />
-            </div>
-          </div>
+          </NeonStage>
+          <ViewerControls />
+          <PassCard />
           <ProgressionChrome />
           <HypothesisBoard />
         </div>
 
-        <div className="side-rail" style={styles.sideColumn}>
+        {/* Right: agent theater */}
+        <aside className="agent-rail">
+          <nav className="utility-links" aria-label="Help">
+            <a className="utility-link" href="#how-to-play">
+              How to play
+            </a>
+            <span className="utility-link" title="New puzzle each day">
+              Daily at midnight
+            </span>
+          </nav>
           <div className="tool-log-sticky" style={styles.toolLogSection}>
             <ToolLog />
           </div>
-
-          <div className="game-section" style={styles.gameSection}>
-            <PassCard />
-            <GameOver />
-            <GuessInput />
-            <GuessHistory />
-          </div>
-        </div>
+        </aside>
       </main>
 
-      <ShareModal />
-      <AgentPanel />
-
-      <footer style={styles.footer}>
-        <p style={styles.footerText}>
-          Built with React Three Fiber & Cloudflare Workers |
+      <footer className="site-footer">
+        <p>Built with curiosity. Designed with care.</p>
+        <p>
+          Objectle ·{' '}
           <a
             href="https://github.com/marvelus-tech/objectle"
             target="_blank"
             rel="noopener noreferrer"
-            style={styles.link}
           >
             GitHub
           </a>
         </p>
       </footer>
+
+      <ShareModal />
+      <AgentPanel />
+
+      <section id="how-to-play" className="visually-hidden">
+        Examine the object, rotate and zoom as unlocked, then guess within six attempts.
+        Facet feedback shows category, material, and scale matches.
+      </section>
     </div>
   );
 }
@@ -155,99 +190,33 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     minHeight: '100vh',
-    background: 'var(--field)',
-  },
-  header: {
-    position: 'relative',
-    padding: 'var(--space-6) var(--space-4)',
-    textAlign: 'center' as const,
-    background: 'var(--surface)',
-    borderBottom: `1px solid var(--border-subtle)`,
-    boxShadow: 'var(--shadow-sm)',
   },
   roomSignal: {
-    position: 'absolute',
-    top: 'var(--space-4)',
-    left: 'var(--space-5)',
     display: 'flex',
     alignItems: 'center',
     gap: 'var(--space-2)',
+    marginBottom: 'var(--space-4)',
     color: 'var(--ink-secondary)',
     fontSize: '10px',
     fontWeight: 600,
-    letterSpacing: '0.08em',
+    letterSpacing: '0.1em',
     textTransform: 'uppercase',
   },
   signalDot: {
     width: '7px',
     height: '7px',
     borderRadius: '50%',
-    boxShadow: '0 0 0 4px var(--accent-subtle)',
-  },
-  title: {
-    fontSize: 'var(--text-3xl)',
-    fontWeight: 600,
-    fontFamily: 'var(--font-display)',
-    color: 'var(--ink)',
-    marginBottom: 'var(--space-1)',
-    letterSpacing: '-0.02em',
-  },
-  subtitle: {
-    fontSize: 'var(--text-sm)',
-    fontFamily: 'var(--font-ui)',
-    color: 'var(--ink-secondary)',
-    fontWeight: 400,
-  },
-  main: {
-    flex: 1,
-    display: 'grid',
-    gridTemplateColumns: '1.5fr 1fr',
-    gap: 'var(--space-8)',
-    padding: 'var(--space-8)',
-    maxWidth: '1600px',
-    width: '100%',
-    margin: '0 auto',
-  },
-  stageColumn: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: 'var(--space-6)',
-  },
-  viewerWrapper: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: 'var(--space-4)',
-    background: 'var(--surface)',
-    borderRadius: 'var(--radius-xl)',
-    padding: 'var(--space-8)',
-    boxShadow: 'var(--shadow-md)',
-    border: `1px solid var(--border-subtle)`,
   },
   viewer: {
     width: '100%',
-    height: '500px',
-    borderRadius: 'var(--radius-lg)',
-    overflow: 'hidden',
-    background: 'var(--stage-bg)',
-    position: 'relative' as const,
-  },
-  controls: {
-    width: '100%',
-  },
-  sideColumn: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: 'var(--space-6)',
+    height: 'min(62vh, 560px)',
+    minHeight: 420,
+    position: 'relative',
   },
   toolLogSection: {
-    position: 'sticky' as const,
+    position: 'sticky',
     top: 'var(--space-4)',
     zIndex: 10,
-  },
-  gameSection: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: 'var(--space-6)',
   },
   centered: {
     display: 'flex',
@@ -264,14 +233,15 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'var(--surface)',
     borderRadius: 'var(--radius-lg)',
     boxShadow: 'var(--shadow-md)',
+    border: '1px solid var(--border-subtle)',
   },
   error: {
-    textAlign: 'center' as const,
+    textAlign: 'center',
     padding: 'var(--space-8)',
     background: 'var(--surface)',
     borderRadius: 'var(--radius-lg)',
     boxShadow: 'var(--shadow-md)',
-    border: `2px solid var(--error)`,
+    border: '2px solid var(--error)',
     maxWidth: '500px',
   },
   retryButton: {
@@ -285,23 +255,5 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: 'var(--font-ui)',
     fontWeight: 500,
     cursor: 'pointer',
-  },
-  footer: {
-    padding: 'var(--space-6)',
-    textAlign: 'center' as const,
-    background: 'var(--surface)',
-    borderTop: `1px solid var(--border-subtle)`,
-  },
-  footerText: {
-    fontSize: 'var(--text-sm)',
-    fontFamily: 'var(--font-ui)',
-    color: 'var(--ink-secondary)',
-    margin: 0,
-  },
-  link: {
-    marginLeft: 'var(--space-2)',
-    color: 'var(--accent)',
-    textDecoration: 'none',
-    fontWeight: 500,
   },
 };

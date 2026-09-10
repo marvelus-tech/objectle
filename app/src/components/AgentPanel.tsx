@@ -133,7 +133,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   toggleButton: {
     padding: 'var(--space-3) var(--space-5)',
-    background: 'var(--accent)',
+    background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-magenta))',
     color: 'white',
     border: 'none',
     borderRadius: 'var(--radius-md)',
@@ -141,7 +141,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: 'var(--font-ui)',
     fontWeight: 500,
     cursor: 'pointer',
-    boxShadow: 'var(--shadow-lg)',
+    boxShadow: 'var(--shadow-lg), 0 0 16px var(--neon-glow)',
     letterSpacing: '0.02em',
   },
   panel: {
@@ -149,11 +149,12 @@ const styles: Record<string, React.CSSProperties> = {
     width: '420px',
     maxHeight: '80vh',
     overflowY: 'auto' as const,
-    background: 'var(--surface)',
+    background: 'var(--glass)',
+    backdropFilter: 'blur(14px)',
     borderRadius: 'var(--radius-xl)',
     padding: 'var(--space-6)',
     boxShadow: 'var(--shadow-lg)',
-    border: `2px solid var(--accent)`,
+    border: '1px solid var(--accent-border)',
     animation: 'fadeScaleIn 220ms ease-out',
   },
   heading: {
