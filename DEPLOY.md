@@ -178,11 +178,26 @@ A: Verify `WORKER_API` environment variable is set correctly in Pages settings a
 **Q: An agent is playing but nothing moves on the host screen**
 A: Check that the host screen and the agent use the same room code (the code in the page URL `?room=` must match the code in the tool URLs / MCP URL). Then confirm the Worker was deployed after the Durable Object was added: `curl <worker>/api/room/<CODE>` should return the room manual, not 404. The Tool Timeline header shows "Offline (local mode)" when the page cannot reach the Worker.
 
+**Q: Agent / Grok gets 404 on `/api/room/...` or `/api/room/.../tools/read_view`**
+A: The frontend on GitHub Pages is ahead of the Worker. `objectle-worker-demo` is still serving the pre-room script (only `/api/daily-challenge`, `/api/check-guess`, etc.). Fix:
+
+```bash
+# From repo root, with a token that can edit Workers + D1:
+export CLOUDFLARE_API_TOKEN=...
+export CLOUDFLARE_ACCOUNT_ID=...
+npm run worker:deploy
+curl -sS https://objectle-worker-demo.marvelus.workers.dev/api/health
+# Expect: {"ok":true,"rooms":true,"version":"roomdo-v1",...}
+curl -sS https://objectle-worker-demo.marvelus.workers.dev/api/room/ABCD | head
+```
+
+Also set the same two values as GitHub Actions secrets so `.github/workflows/github-pages.yml` deploys the Worker on every main push (the workflow now fails closed if they are missing).
+
 **Q: D1 commands fail**
 A: Ensure you are authenticated (`wrangler login`) and have permissions for the account.
 
 **Q: GitHub Actions deployment fails**
-A: Check that `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets are set correctly. Verify API token has "Cloudflare Pages" permissions.
+A: Check that `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets are set. The Worker token needs Workers Scripts Edit + D1 Edit (not only Pages).
 
 **Q: Custom domain not working**
 A: DNS propagation can take up to 24 hours. Verify DNS records are correct in Cloudflare DNS settings.

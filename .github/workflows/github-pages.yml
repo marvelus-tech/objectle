@@ -35,13 +35,42 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Do not skip: a stale Worker makes /api/room/* 404 while Pages looks fine.
+      - name: Require Cloudflare credentials for Worker deploy
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID must be set as repository secrets."
+            echo "Without them, objectle-worker-demo stays on old code and room/tool URLs 404."
+            echo "Create a token with Workers Scripts Edit + D1 Edit, then re-run this workflow."
+            exit 1
+          fi
+
       - name: Deploy Worker
-        if: ${{ env.CLOUDFLARE_API_TOKEN != '' }}
         run: npx wrangler deploy
 
-      - name: Explain skipped Worker deployment
-        if: ${{ env.CLOUDFLARE_API_TOKEN == '' }}
-        run: echo "Worker deployment skipped because CLOUDFLARE_API_TOKEN is not configured."
+      - name: Smoke-test room API
+        run: |
+          set -euo pipefail
+          base="https://objectle-worker-demo.marvelus.workers.dev"
+          code="CI$(date +%s | tail -c 5)"
+          # Too-short codes should 400; proves /api/room exists (old Worker returned 404).
+          status=$(curl -sS -o /tmp/room-body.txt -w "%{http_code}" "$base/api/room/AB")
+          if [ "$status" = "404" ]; then
+            echo "::error::Room route still 404 after deploy. Live Worker is stale or wrong script."
+            cat /tmp/room-body.txt
+            exit 1
+          fi
+          if [ "$status" != "400" ]; then
+            echo "::warning::Expected 400 for short room code, got $status"
+          fi
+          manual=$(curl -sS -f "$base/api/room/$code")
+          echo "$manual" | head -n 5
+          echo "$manual" | grep -q "OBJECTLE ROOM" || {
+            echo "::error::Room manual missing expected header"
+            exit 1
+          }
+          curl -sS -f "$base/api/room/$code/tools/read_view" | head -n 3
+          curl -sS -f "$base/api/health" | grep -q '"rooms":true'
 
   build:
     runs-on: ubuntu-latest

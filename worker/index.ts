@@ -7,6 +7,7 @@
  *   POST /api/check-guess                     legacy single-player guess check
  *   GET  /api/score?playerId=                 streaks + today's guesses
  *   GET  /api/leaderboard
+ *   GET  /api/health                          deploy smoke check (rooms: true)
  *
  *   Live rooms (agent <-> host screen bridge, backed by RoomDO)
  *   GET  /api/room/:code                      plain-text agent manual for the room
@@ -46,6 +47,15 @@ export default {
         const code = normalizeCode(mcp[1] ?? url.searchParams.get('room') ?? '');
         if (!code) return json({ error: 'Room code required: /mcp/ABCD' }, 400);
         return handleMcp(request, env.ROOM.get(env.ROOM.idFromName(code)), code);
+      }
+
+      if (path === '/api/health' && request.method === 'GET') {
+        return json({
+          ok: true,
+          service: 'objectle-worker',
+          rooms: true,
+          version: 'roomdo-v1',
+        });
       }
 
       if (path === '/api/daily-challenge' && request.method === 'GET') return handleGetDailyChallenge(env);
