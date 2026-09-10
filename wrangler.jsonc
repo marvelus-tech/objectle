@@ -1,5 +1,5 @@
 {
-  "name": "objectle",
+  "name": "objectle-worker-demo",
   "main": "worker/index.ts",
   "compatibility_date": "2026-09-10",
   "compatibility_flags": ["nodejs_compat"],
@@ -21,7 +21,7 @@
     {
       "binding": "DB",
       "database_name": "objectle-db",
-      "database_id": "preview-database-id"
+      "database_id": "3fbf385e-1743-4c30-82de-b857725e78b0"
     }
   ],
   "vars": {
