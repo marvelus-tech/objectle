@@ -63,17 +63,14 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    // Rate limiting: simple IP-based check (production should use Durable Objects)
-    const clientIP = request.headers.get('CF-Connecting-IP') || 'unknown';
-
     try {
       // API Routes
       if (path === '/api/daily-challenge' && request.method === 'GET') {
-        return handleGetDailyChallenge(env, clientIP);
+        return handleGetDailyChallenge(env);
       }
 
       if (path === '/api/check-guess' && request.method === 'POST') {
-        return handleCheckGuess(request, env, clientIP);
+        return handleCheckGuess(request, env);
       }
 
       if (path === '/api/score' && request.method === 'GET') {
@@ -220,7 +217,7 @@ export class TheaterRoom extends DurableObject<Env> {
  * Get today's daily challenge
  * Returns opaque object_key and facets, but NOT the answer
  */
-async function handleGetDailyChallenge(env: Env, clientIP: string): Promise<Response> {
+async function handleGetDailyChallenge(env: Env): Promise<Response> {
   const today = getTodayUTC();
 
   const challenge = await env.DB.prepare(
@@ -255,7 +252,7 @@ async function handleGetDailyChallenge(env: Env, clientIP: string): Promise<Resp
  * Check a player's guess
  * Returns facet feedback (Worldle-style) and correctness
  */
-async function handleCheckGuess(request: Request, env: Env, clientIP: string): Promise<Response> {
+async function handleCheckGuess(request: Request, env: Env): Promise<Response> {
   const body = await request.json() as { playerId: string; guess: string };
   const { playerId, guess } = body;
 

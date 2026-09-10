@@ -110,26 +110,26 @@ export function sanitizePublishedStatus(input: unknown): PublishStatusInput {
   const rawCandidates = Array.isArray(value.candidates) ? value.candidates : [];
   const candidates = rawCandidates
     .slice(0, 3)
-    .map(candidate => {
+    .reduce<Candidate[]>((items, candidate) => {
       const item =
         candidate && typeof candidate === 'object'
           ? (candidate as Record<string, unknown>)
           : {};
       const name = cleanText(item.name, 40);
-      if (!name) return null;
+      if (!name) return items;
 
       const numericConfidence =
         typeof item.confidence === 'number'
           ? Math.min(100, Math.max(0, Math.round(item.confidence)))
           : undefined;
 
-      return {
+      items.push({
         name,
         confidence: numericConfidence,
         evidence: cleanText(item.evidence, 100),
-      };
-    })
-    .filter((candidate): candidate is Candidate => candidate !== null);
+      });
+      return items;
+    }, []);
 
   return {
     headline,
