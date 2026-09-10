@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - cursor/agent-theater-experience-c5a0
   workflow_dispatch:
 
 permissions:
