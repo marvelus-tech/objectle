@@ -387,30 +387,26 @@ animation: fadeScaleIn 220ms ease-out;
 
 ## Semantic Layout Contract
 
-### App Shell
+### App Shell (prototype)
 ```
-┌─────────────────────────────────────────────────┐
-│  Header: Objectle (display font) + tagline      │
-├─────────────────┬───────────────────────────────┤
-│                 │  ToolLog (sticky sidebar,    │
-│  3D Stage       │   director's log style)       │
-│  (gallery       ├───────────────────────────────┤
-│   plinth)       │  PassCard (large QR frame)   │
-│                 ├───────────────────────────────┤
-│ ViewerControls  │  GuessInput                   │
-│ ProgressionChrome│ GuessHistory                 │
-│                 │  GameOver (when applicable)  │
-└─────────────────┴───────────────────────────────┘
-│  Footer: attribution + links                    │
-└─────────────────────────────────────────────────┘
+┌──────────────┬────────────────────────┬──────────────────┐
+│ Objectle     │                        │ Daily | How to   │
+│ tagline      │   Prism 3D Stage       │                  │
+│ date · #N    │   (controls dock)      │ Agent Tool       │
+│              │                        │ Timeline (4-step)│
+│ Make a guess │   Pass to agent bar    │                  │
+│ Attempts 4×6 │                        │ Agent thinking   │
+└──────────────┴────────────────────────┴──────────────────┘
+│ Footer: Built with curiosity…    Objectle © year        │
+└─────────────────────────────────────────────────────────┘
 
-Overlays: ShareModal, AgentPanel (craft entry, not emoji FAB)
+Overlays: ShareModal, HowToPlay, AgentPanel
 ```
 
 ### Grid Ratio
-**Main grid:** `1.5fr 1fr` (stage column slightly wider than side rail)  
-**Stage column padding:** `--space-8` for gallery frame  
-**Side rail padding:** `--space-6` for reading comfort
+**Main grid:** `0.85fr 1.35fr 0.95fr` (brand / stage / timeline)  
+**Max width:** 1440px with `--space-8` gutters  
+**Stage:** prism frame sits on paper field; controls dock overlays bottom center
 
 ---
 

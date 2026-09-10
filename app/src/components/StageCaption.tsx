@@ -10,16 +10,9 @@ export default function StageCaption() {
     state => state.events[state.events.length - 1],
   );
 
+  // Prototype stage stays clean until theater activity starts.
   if (!latestEvent) {
-    return (
-      <div style={styles.caption}>
-        <span style={styles.eyebrow}>The stage is ready</span>
-        <strong style={styles.headline}>Waiting for an agent to begin</strong>
-        <span style={styles.supporting}>
-          Scan the pass to watch every decision unfold.
-        </span>
-      </div>
-    );
+    return null;
   }
 
   if (latestEvent.kind === 'status') {
@@ -62,15 +55,17 @@ const styles: Record<string, React.CSSProperties> = {
     position: 'absolute',
     left: 'var(--space-5)',
     right: 'var(--space-5)',
-    bottom: 'var(--space-5)',
+    top: 'var(--space-5)',
+    bottom: 'auto',
     zIndex: 2,
-    padding: 'var(--space-4) var(--space-5)',
+    padding: 'var(--space-3) var(--space-4)',
     border: '1px solid rgba(255, 255, 255, 0.8)',
     borderRadius: 'var(--radius-lg)',
     background: 'rgba(255, 255, 255, 0.86)',
     boxShadow: '0 10px 34px rgba(26, 26, 26, 0.10)',
     backdropFilter: 'blur(16px)',
     animation: 'captionReveal 240ms ease-out both',
+    maxWidth: '420px',
   },
   eyebrow: {
     display: 'block',

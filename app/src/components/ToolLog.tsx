@@ -1,167 +1,173 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   describeToolAction,
   describeToolResult,
-  ToolTheaterEvent,
   useTheaterStore,
 } from '../lib/theater';
+import { useGameStore } from '../lib/store';
+
+const STEPS = [
+  {
+    id: 'scan',
+    title: 'Scan Shape',
+    idle: 'Analyzing silhouette...',
+    tools: ['read_view'],
+  },
+  {
+    id: 'material',
+    title: 'Material Probe',
+    idle: 'Estimating material...',
+    tools: ['rotate_object', 'zoom'],
+  },
+  {
+    id: 'context',
+    title: 'Context Search',
+    idle: 'Searching knowledge...',
+    tools: ['publish_status'],
+  },
+  {
+    id: 'guess',
+    title: 'Final Guess',
+    idle: 'Forming hypothesis...',
+    tools: ['submit_guess'],
+  },
+] as const;
+
+function SparkleIcon({ color = 'currentColor' }: { color?: string }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M12 2l1.6 6.4L20 10l-6.4 1.6L12 18l-1.6-6.4L4 10l6.4-1.6L12 2z"
+        fill={color}
+      />
+    </svg>
+  );
+}
 
 /**
- * Dual Watch UI: Tool observation log
- * Shows real-time tool execution for humans watching agents play
+ * Prototype Agent Tool Timeline: fixed 4-step ritual + live status.
+ * Detailed event stream still available via the latest activity line.
  */
 export default function ToolLog() {
   const events = useTheaterStore(state => state.events);
-  const [expanded, setExpanded] = useState(true);
+  const lastAction = useGameStore(state => state.lastAction);
+  const agentLastSeenAt = useGameStore(state => state.agentLastSeenAt);
+  const roomConnected = useGameStore(state => state.roomConnected);
+
+  const completedTools = new Set(
+    events
+      .filter(
+        (e): e is Extract<typeof e, { kind: 'tool' }> =>
+          e.kind === 'tool' && e.phase === 'completed' && e.success !== false,
+      )
+      .map(e => e.tool),
+  );
+
+  const runningEvent = events.find(
+    (e): e is Extract<typeof e, { kind: 'tool' }> =>
+      e.kind === 'tool' && e.phase === 'running',
+  );
+  const runningTool = runningEvent?.tool ?? null;
+
+  const stepStates = STEPS.map((step, index) => {
+    const done = step.tools.some(t => completedTools.has(t));
+    const active = step.tools.some(t => t === runningTool) || (!done && index === 0 && events.length === 0);
+    // Progress: first incomplete step after prior completions
+    const priorDone = STEPS.slice(0, index).every(s =>
+      s.tools.some(t => completedTools.has(t)),
+    );
+    const current =
+      active ||
+      (!done && priorDone && !STEPS.some(s => s.tools.some(t => t === runningTool)));
+    return { ...step, done, current };
+  });
+
+  const stepIndex = Math.min(
+    STEPS.filter(s => s.tools.some(t => completedTools.has(t))).length,
+    4,
+  );
+
+  const thinking =
+    Boolean(runningTool) ||
+    (roomConnected && agentLastSeenAt !== null && Date.now() - agentLastSeenAt < 10_000);
+
+  const latestLine = (() => {
+    const last = events[events.length - 1];
+    if (!last) return lastAction?.caption ?? null;
+    if (last.kind === 'status') return last.headline;
+    return last.phase === 'running'
+      ? describeToolAction(last.tool, last.args)
+      : describeToolResult(last);
+  })();
 
   return (
-    <div className="prism-hairline" style={styles.container}>
-      <button
-        type="button"
-        style={styles.header}
-        onClick={() => setExpanded(current => !current)}
-        aria-expanded={expanded}
-      >
-        <span>
-          <span style={styles.eyebrow}>Agent tool timeline</span>
-          <span style={styles.title}>Live director's log</span>
+    <div className="prism-hairline tool-timeline" style={styles.container}>
+      <div style={styles.header}>
+        <span style={styles.headerLeft}>
+          <SparkleIcon color="var(--neon-a-ink)" />
+          <span style={styles.title}>Agent tool timeline</span>
         </span>
-        <span style={styles.count}>Step {events.length}</span>
-      </button>
-      
-      {expanded && (
-        <div style={styles.logContainer} aria-live="polite">
-          {events.length === 0 ? (
-            <div style={styles.emptyState}>
-              <p style={styles.emptyText}>Waiting for an agent...</p>
-              <p style={styles.emptySubtext}>
-                Every observation, action, and result will unfold here.
+        <span style={styles.stepPill}>
+          Step {stepIndex} / {STEPS.length}
+        </span>
+      </div>
+
+      <ol style={styles.steps}>
+        {stepStates.map((step, index) => (
+          <li key={step.id} style={styles.step}>
+            <div style={styles.rail}>
+              <span
+                style={{
+                  ...styles.badge,
+                  borderColor: step.done || step.current ? 'var(--neon-a)' : 'var(--border)',
+                  color: step.done || step.current ? 'var(--neon-a-ink)' : 'var(--ink-muted)',
+                  background: step.done || step.current ? 'var(--neon-a-wash)' : 'var(--surface)',
+                }}
+              >
+                {index + 1}
+              </span>
+              {index < STEPS.length - 1 && (
+                <span
+                  style={{
+                    ...styles.connector,
+                    background:
+                      step.done ? 'var(--neon-a)' : 'var(--border-subtle)',
+                  }}
+                />
+              )}
+            </div>
+            <div style={styles.stepCopy}>
+              <div style={styles.stepTitleRow}>
+                <strong style={styles.stepTitle}>{step.title}</strong>
+                <span
+                  style={{
+                    ...styles.statusDot,
+                    background:
+                      step.done || step.current ? 'var(--neon-a)' : 'var(--border-strong)',
+                    boxShadow:
+                      step.current && thinking
+                        ? '0 0 0 4px var(--neon-a-soft)'
+                        : undefined,
+                  }}
+                />
+              </div>
+              <p style={styles.stepSub}>
+                {step.current && latestLine ? latestLine : step.idle}
               </p>
             </div>
-          ) : (
-            events
-              .slice()
-              .reverse()
-              .map((event, index) =>
-                event.kind === 'tool' ? (
-                  <ToolEntry key={event.id} event={event} index={index} />
-                ) : (
-                  <article key={event.id} style={styles.statusEntry}>
-                    <span style={styles.entryEyebrow}>Working theory</span>
-                    <strong style={styles.entryHeadline}>{event.headline}</strong>
-                    {event.rationale && <p style={styles.result}>{event.rationale}</p>}
-                    {event.candidates && (
-                      <div style={styles.statusCandidates}>
-                        {event.candidates.map(candidate => (
-                          <span key={candidate.name} style={styles.statusCandidate}>
-                            {candidate.name}
-                            {typeof candidate.confidence === 'number'
-                              ? ` ${candidate.confidence}%`
-                              : ''}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    {event.next && (
-                      <p style={styles.next}>
-                        <strong>Next:</strong> {event.next}
-                      </p>
-                    )}
-                  </article>
-                ),
-              )
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
+          </li>
+        ))}
+      </ol>
 
-function ToolEntry({ event, index }: { event: ToolTheaterEvent; index: number }) {
-  const [showRaw, setShowRaw] = useState(false);
-  const running = event.phase === 'running';
-  const accent = running
-    ? 'var(--neon-a)'
-    : event.success
-      ? 'var(--success)'
-      : 'var(--error)';
-
-  return (
-    <article
-      style={{
-        ...styles.logEntry,
-        borderLeftColor: accent,
-        animationDelay: `${Math.min(index, 5) * 35}ms`,
-      }}
-    >
-      <div style={styles.logHeader}>
-        <span style={styles.source}>{event.source}</span>
-        <time style={styles.timestamp}>
-          {new Date(event.timestamp).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-          })}
-        </time>
-      </div>
-
-      <strong style={styles.entryHeadline}>
-        {running
-          ? describeToolAction(event.tool, event.args)
-          : describeToolResult(event)}
-      </strong>
-
-      <div style={styles.stateLine}>
-        <span style={{ ...styles.stateDot, background: accent }} />
-        {running
-          ? 'In progress'
-          : `${event.success ? 'Complete' : 'Needs attention'} · ${event.durationMs ?? 0}ms`}
-      </div>
-
-      {event.detail && <FacetSummary detail={event.detail} />}
-
-      {event.result && event.tool === 'read_view' && (
-        <p style={styles.observation}>{event.result.split('\n\n')[0]}</p>
-      )}
-
-      {(Object.keys(event.args).length > 0 || event.result) && (
-        <>
-          <button
-            type="button"
-            style={styles.detailButton}
-            onClick={() => setShowRaw(current => !current)}
-          >
-            {showRaw ? 'Hide technical detail' : 'Show technical detail'}
-          </button>
-          {showRaw && (
-            <pre style={styles.rawDetail}>
-              {Object.keys(event.args).length > 0
-                ? `Input\n${JSON.stringify(event.args, null, 2)}\n\n`
-                : ''}
-              {event.result ? `Output\n${event.result}` : ''}
-            </pre>
-          )}
-        </>
-      )}
-    </article>
-  );
-}
-
-function FacetSummary({ detail }: { detail: NonNullable<ToolTheaterEvent['detail']> }) {
-  return (
-    <div style={styles.facets}>
-      {Object.entries(detail.facets).map(([name, facet]) => (
-        <span
-          key={name}
-          style={{
-            ...styles.facet,
-            color: facet.match ? 'var(--success)' : 'var(--error)',
-            background: facet.match ? 'var(--success-bg)' : 'var(--error-bg)',
-          }}
-        >
-          {name} {facet.match ? 'matched' : 'missed'}
+      <div style={styles.footer}>
+        <span style={styles.footerLeft}>
+          <SparkleIcon color="var(--neon-b-ink)" />
+          <span>{thinking ? 'Agent is thinking' : 'Waiting for agent'}</span>
         </span>
-      ))}
+        <span style={styles.ellipsis} aria-hidden="true">
+          ···
+        </span>
+      </div>
     </div>
   );
 }
@@ -171,199 +177,122 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'var(--surface)',
     borderRadius: 'var(--radius-xl)',
     boxShadow: 'var(--shadow-md)',
-    border: `1px solid var(--border-subtle)`,
+    border: '1px solid var(--border-subtle)',
     overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: '420px',
   },
   header: {
-    width: '100%',
-    border: 0,
-    borderBottom: '1px solid var(--border-subtle)',
-    padding: 'var(--space-4) var(--space-5)',
-    background: 'var(--surface)',
-    color: 'var(--ink)',
     display: 'flex',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    textAlign: 'left',
+    justifyContent: 'space-between',
+    gap: 'var(--space-3)',
+    padding: 'var(--space-4) var(--space-5)',
+    borderBottom: '1px solid var(--border-subtle)',
   },
-  eyebrow: {
-    display: 'block',
-    marginBottom: '2px',
-    color: 'var(--ink-tertiary)',
-    fontSize: '10px',
-    fontWeight: 600,
-    letterSpacing: '0.12em',
-    textTransform: 'uppercase',
+  headerLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    color: 'var(--ink)',
   },
   title: {
-    display: 'block',
-    fontSize: 'var(--text-base)',
-    fontFamily: 'var(--font-display)',
-    fontWeight: 600,
-    letterSpacing: '0.01em',
-  },
-  count: {
-    padding: '4px 10px',
-    borderRadius: '999px',
-    background: 'var(--accent-subtle)',
-    color: 'var(--ink-secondary)',
-    fontSize: '10px',
-    fontWeight: 600,
-    letterSpacing: '0.06em',
-    textTransform: 'uppercase',
-    fontVariantNumeric: 'tabular-nums',
-  },
-  logContainer: {
-    maxHeight: '400px',
-    overflowY: 'auto' as const,
-    padding: 'var(--space-4)',
-  },
-  logEntry: {
-    marginBottom: 'var(--space-3)',
-    padding: 'var(--space-4)',
-    background: 'var(--surface-subtle)',
-    borderRadius: 'var(--radius-md)',
-    borderLeft: '3px solid var(--accent)',
-    fontSize: 'var(--text-xs)',
-    fontFamily: 'var(--font-ui)',
-    animation: 'slideInFade 240ms ease-out both',
-  },
-  statusEntry: {
-    marginBottom: 'var(--space-3)',
-    padding: 'var(--space-4)',
-    background: 'var(--neon-b-wash)',
-    borderRadius: 'var(--radius-md)',
-    borderLeft: '3px solid var(--neon-b)',
-    animation: 'slideInFade 240ms ease-out both',
-  },
-  logHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    marginBottom: 'var(--space-2)',
-  },
-  source: {
-    fontWeight: 600,
-    color: 'var(--ink-tertiary)',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.08em',
-  },
-  timestamp: {
-    fontSize: 'var(--text-xs)',
-    fontFamily: 'var(--font-ui)',
-    color: 'var(--ink-tertiary)',
-    fontVariantNumeric: 'tabular-nums',
-  },
-  entryEyebrow: {
-    display: 'block',
-    marginBottom: 'var(--space-1)',
-    color: 'var(--neon-b-ink)',
-    fontSize: '10px',
-    fontWeight: 600,
+    fontSize: '11px',
+    fontWeight: 700,
     letterSpacing: '0.1em',
     textTransform: 'uppercase',
   },
-  entryHeadline: {
-    display: 'block',
-    color: 'var(--ink)',
+  stepPill: {
+    fontSize: '11px',
+    fontWeight: 600,
+    letterSpacing: '0.06em',
+    textTransform: 'uppercase',
+    color: 'var(--ink-tertiary)',
+    fontVariantNumeric: 'tabular-nums',
+  },
+  steps: {
+    listStyle: 'none',
+    margin: 0,
+    padding: 'var(--space-5)',
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 0,
+  },
+  step: {
+    display: 'grid',
+    gridTemplateColumns: '28px 1fr',
+    gap: '12px',
+    minHeight: '72px',
+  },
+  rail: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+  },
+  badge: {
+    width: '28px',
+    height: '28px',
+    borderRadius: '50%',
+    border: '1.5px solid',
+    display: 'grid',
+    placeItems: 'center',
+    fontSize: '12px',
+    fontWeight: 700,
+    flexShrink: 0,
+  },
+  connector: {
+    width: '2px',
+    flex: 1,
+    minHeight: '28px',
+    margin: '4px 0',
+    borderRadius: '1px',
+  },
+  stepCopy: {
+    paddingBottom: 'var(--space-4)',
+  },
+  stepTitleRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '8px',
+  },
+  stepTitle: {
     fontFamily: 'var(--font-display)',
     fontSize: 'var(--text-base)',
     fontWeight: 600,
-    lineHeight: 1.25,
+    color: 'var(--ink)',
   },
-  stateLine: {
+  statusDot: {
+    width: '8px',
+    height: '8px',
+    borderRadius: '50%',
+    flexShrink: 0,
+  },
+  stepSub: {
+    margin: '4px 0 0',
+    fontSize: 'var(--text-sm)',
+    color: 'var(--ink-tertiary)',
+    lineHeight: 1.4,
+  },
+  footer: {
     display: 'flex',
     alignItems: 'center',
-    gap: '6px',
-    marginTop: 'var(--space-2)',
-    color: 'var(--ink-tertiary)',
-    fontSize: '11px',
-  },
-  stateDot: {
-    width: '7px',
-    height: '7px',
-    borderRadius: '50%',
-  },
-  facets: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: 'var(--space-1)',
-    marginTop: 'var(--space-3)',
-  },
-  facet: {
-    padding: '4px 7px',
-    borderRadius: 'var(--radius-sm)',
-    fontSize: '10px',
-    fontWeight: 600,
-    textTransform: 'capitalize',
-  },
-  observation: {
-    marginTop: 'var(--space-3)',
+    justifyContent: 'space-between',
+    padding: '14px var(--space-5)',
+    borderTop: '1px solid var(--border-subtle)',
     color: 'var(--ink-secondary)',
-    fontSize: 'var(--text-xs)',
-    lineHeight: 1.5,
-  },
-  result: {
-    marginTop: 'var(--space-2)',
-    color: 'var(--ink-secondary)',
-    fontSize: 'var(--text-xs)',
-    lineHeight: 1.5,
-  },
-  statusCandidates: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: 'var(--space-1)',
-    marginTop: 'var(--space-3)',
-  },
-  statusCandidate: {
-    padding: '4px 7px',
-    borderRadius: '999px',
-    background: 'var(--surface)',
-    color: 'var(--neon-b-ink)',
-    fontSize: '10px',
-    fontWeight: 600,
-    textTransform: 'capitalize',
-  },
-  next: {
-    marginTop: 'var(--space-3)',
-    color: 'var(--ink-secondary)',
-    fontSize: '11px',
-  },
-  detailButton: {
-    marginTop: 'var(--space-3)',
-    padding: 0,
-    background: 'transparent',
-    color: 'var(--accent)',
-    fontSize: '11px',
-    fontWeight: 600,
-  },
-  rawDetail: {
-    maxHeight: '220px',
-    marginTop: 'var(--space-2)',
-    padding: 'var(--space-3)',
-    overflow: 'auto',
-    border: '1px solid var(--border-subtle)',
-    borderRadius: 'var(--radius-sm)',
-    background: 'var(--info-bg)',
-    color: 'var(--ink-secondary)',
-    fontSize: '10px',
-    lineHeight: 1.45,
-    whiteSpace: 'pre-wrap',
-  },
-  emptyState: {
-    textAlign: 'center' as const,
-    padding: 'var(--space-10) var(--space-4)',
-  },
-  emptyText: {
-    fontSize: 'var(--text-lg)',
-    fontFamily: 'var(--font-display)',
-    fontWeight: 600,
-    color: 'var(--ink-secondary)',
-    margin: `0 0 var(--space-2) 0`,
-  },
-  emptySubtext: {
     fontSize: 'var(--text-sm)',
-    fontFamily: 'var(--font-ui)',
-    color: 'var(--ink-tertiary)',
-    margin: 0,
+  },
+  footerLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  ellipsis: {
+    letterSpacing: '2px',
+    color: 'var(--ink-muted)',
+    fontWeight: 700,
   },
 };
