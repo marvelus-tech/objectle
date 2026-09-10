@@ -129,6 +129,7 @@ export default function App() {
     <div className="app-shell paper-field" style={styles.app}>
       <div className="prototype-top">
         <div className="prototype-brand-spacer" aria-hidden="true" />
+        <div aria-hidden="true" />
         <nav className="prototype-nav" style={styles.topNav} aria-label="Site">
           <span style={styles.navItem}>
             <CalendarIcon />

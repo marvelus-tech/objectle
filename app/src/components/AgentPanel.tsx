@@ -38,7 +38,7 @@ export default function AgentPanel() {
         style={styles.toggleButton}
         title="Agent Tools Panel"
       >
-        Agent Tools {showPanel ? '▼' : '▲'}
+        Agent Tools {showPanel ? 'Close' : 'Open'}
       </button>
       
       {showPanel && (
@@ -132,17 +132,18 @@ const styles: Record<string, React.CSSProperties> = {
     zIndex: 1000,
   },
   toggleButton: {
-    padding: 'var(--space-3) var(--space-5)',
-    background: 'var(--accent)',
-    color: 'white',
-    border: 'none',
+    padding: 'var(--space-2) var(--space-4)',
+    background: 'var(--surface)',
+    color: 'var(--ink-secondary)',
+    border: '1px solid var(--border)',
     borderRadius: 'var(--radius-md)',
-    fontSize: 'var(--text-sm)',
+    fontSize: '11px',
     fontFamily: 'var(--font-ui)',
-    fontWeight: 500,
+    fontWeight: 600,
+    letterSpacing: '0.04em',
+    textTransform: 'uppercase',
     cursor: 'pointer',
-    boxShadow: 'var(--shadow-lg)',
-    letterSpacing: '0.02em',
+    boxShadow: 'var(--shadow-sm)',
   },
   panel: {
     marginTop: 'var(--space-3)',

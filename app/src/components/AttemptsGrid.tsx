@@ -1,11 +1,11 @@
 import React from 'react';
 import { useGameStore } from '../lib/store';
 
-const ROWS = 4;
+const ROWS = 5;
 const COLS = 6;
 
 /**
- * Prototype attempts meter: 4×6 circle grid.
+ * Prototype attempts meter: 5×6 circle grid.
  * Columns = guess slots (6). Rows 0–2 = category / material / scale once guessed.
  * Row 3 = overall hit/miss. Empty board fills the top row as the "ready" state.
  */
@@ -92,7 +92,7 @@ const styles: Record<string, React.CSSProperties> = {
   grid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(6, 1fr)',
-    gridTemplateRows: 'repeat(4, auto)',
+    gridTemplateRows: 'repeat(5, auto)',
     gap: '10px 12px',
     maxWidth: '220px',
   },

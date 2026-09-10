@@ -71,15 +71,16 @@ export default function ToolLog() {
 
   const stepStates = STEPS.map((step, index) => {
     const done = step.tools.some(t => completedTools.has(t));
-    const active = step.tools.some(t => t === runningTool) || (!done && index === 0 && events.length === 0);
-    // Progress: first incomplete step after prior completions
+    const active = step.tools.some(t => t === runningTool);
     const priorDone = STEPS.slice(0, index).every(s =>
       s.tools.some(t => completedTools.has(t)),
     );
     const current =
       active ||
       (!done && priorDone && !STEPS.some(s => s.tools.some(t => t === runningTool)));
-    return { ...step, done, current };
+    // Prototype idle: first two steps show teal status dots
+    const lit = done || current || (events.length === 0 && index < 2);
+    return { ...step, done, current, lit };
   });
 
   const stepIndex = Math.min(
@@ -119,9 +120,9 @@ export default function ToolLog() {
               <span
                 style={{
                   ...styles.badge,
-                  borderColor: step.done || step.current ? 'var(--neon-a)' : 'var(--border)',
-                  color: step.done || step.current ? 'var(--neon-a-ink)' : 'var(--ink-muted)',
-                  background: step.done || step.current ? 'var(--neon-a-wash)' : 'var(--surface)',
+                  borderColor: step.lit ? 'var(--neon-a)' : 'var(--border)',
+                  color: step.lit ? 'var(--neon-a-ink)' : 'var(--ink-muted)',
+                  background: step.lit ? 'var(--neon-a-wash)' : 'var(--surface)',
                 }}
               >
                 {index + 1}
@@ -131,7 +132,9 @@ export default function ToolLog() {
                   style={{
                     ...styles.connector,
                     background:
-                      step.done ? 'var(--neon-a)' : 'var(--border-subtle)',
+                      step.done || (events.length === 0 && index === 0)
+                        ? 'var(--neon-a)'
+                        : 'var(--border-subtle)',
                   }}
                 />
               )}
@@ -142,8 +145,7 @@ export default function ToolLog() {
                 <span
                   style={{
                     ...styles.statusDot,
-                    background:
-                      step.done || step.current ? 'var(--neon-a)' : 'var(--border-strong)',
+                    background: step.lit ? 'var(--neon-a)' : 'var(--border-strong)',
                     boxShadow:
                       step.current && thinking
                         ? '0 0 0 4px var(--neon-a-soft)'
