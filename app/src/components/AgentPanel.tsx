@@ -6,7 +6,7 @@ import { webmcpTools, callWebMCPTool } from '../lib/webmcp';
  * Visible panel where agents can execute tools and see results
  */
 export default function AgentPanel() {
-  const [selectedTool, setSelectedTool] = useState(webmcpTools[0]?.name || '');
+  const [selectedTool, setSelectedTool] = useState<string>(webmcpTools[0]?.name || '');
   const [toolArgs, setToolArgs] = useState('{}');
   const [result, setResult] = useState('');
   const [executing, setExecuting] = useState(false);

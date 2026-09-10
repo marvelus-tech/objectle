@@ -15,26 +15,30 @@ Objectle is a web-based puzzle game where players have 6 guesses to identify a d
 
 ## For AI Agents
 
-Objectle is designed to be playable by AI agents using WebMCP tools. The game provides two ways for agents to interact:
+Objectle is designed to be watched: a human opens the host screen, a guest scans the QR code, and everything the guest's agent does is animated live on the host screen.
 
-### Browser WebMCP (Recommended)
+### How the live room works
 
-When viewing the page, agents can use tools directly via the browser's `modelContext` API:
+1. The host screen picks a 4-letter room code and puts it in the URL (`?room=ABCD`) and in the QR code.
+2. The Worker keeps one Durable Object per room with the viewer state (rotation, zoom, reveal tier, guesses) and an ordered log of tool calls.
+3. Agents call the room's tools. The host screen polls the room and animates each event: the object turns, the camera dollies, the clay reveals, captions narrate, and the timeline fills in.
 
-- `rotate_object(axis, degrees)` - Rotate the object to view from different angles
-- `zoom(level)` - Zoom in (gated by wrong guesses)
-- `read_view()` - Get a curated description of the current view
-- `submit_guess(name)` - Submit a guess and receive facet feedback
+Agents can connect three ways, from zero-setup to native:
 
-**Features:**
-- Tools drive the live Three.js viewer
-- Real-time state updates
-- Visible tool log for humans watching agents play
-- Fallback panel UI for testing (bottom-right corner)
+- **Plain URLs (any agent that can fetch a web page):** `GET https://<worker>/api/room/ABCD` returns a text manual with the exact tool URLs, e.g. `.../tools/rotate_object?axis=y&degrees=30`. This is what the QR prompt uses.
+- **MCP connector:** add `https://<worker>/mcp/ABCD` as a Streamable HTTP server (no auth). Works with Claude.ai connectors, ChatGPT developer mode, Cursor, Claude Code.
+- **Browser WebMCP:** when the host page is driven by a browser agent that supports `window.modelContext`, the same four tools are registered in-page and routed through the room.
 
-### Node.js MCP Server (Alternative)
+The four tools:
 
-Configure the MCP server in your MCP client settings (requires local Worker). See AGENTS.md for setup instructions.
+- `read_view()` - Curated description of the current view (never the answer)
+- `rotate_object(axis, degrees)` - Rotate the object
+- `zoom(level)` - Zoom in (one level unlocks per wrong guess)
+- `submit_guess(name)` - Guess, get facet feedback (category, material, scale)
+
+### Node.js MCP Server (desktop clients)
+
+`worker/mcp-server.ts` is a thin stdio proxy to the room endpoints for clients like Claude Desktop. Set `WORKER_API` and either `ROOM_CODE` or call `join_room(code)` first. See AGENTS.md.
 
 **Agent Panel:**
 The page includes a visible agent tools panel (bottom-right) that shows available tools, their schemas, and allows manual execution with copyable results. This follows the Foresight Shop pattern for transparent agent interaction.
@@ -60,7 +64,9 @@ Objectle 2026-09-06 3/6
 
 - **Frontend**: React + React Three Fiber + Three.js (Vite build)
 - **Backend**: Cloudflare Worker (game logic, anti-cheat)
+- **Live rooms**: Cloudflare Durable Object per room (viewer state + tool event log, MCP endpoint)
 - **Database**: Cloudflare D1 (daily challenges, scores, synonyms)
+- **Shared rules**: `shared/` (progression thresholds and tool schemas used by browser, Worker and MCP server)
 - **Deployment**: Cloudflare Pages (frontend) + Workers (backend)
 - **MCP Server**: Node.js stdio server for AI agent tools
 
@@ -156,13 +162,15 @@ GitHub Pages deployment works **without requiring a Worker**. The frontend inclu
 
 ### Worker Deployment (Optional)
 
-The Worker provides server-side scoring, leaderboards, and persistent state. Deploy it for full features:
+The Worker provides live rooms (the agent-to-screen bridge), server-side scoring, leaderboards, and persistent state. Deploy it for full features:
 
 1. Update `wrangler.jsonc` with your D1 database ID
-2. Deploy:
+2. Deploy (this also runs the `RoomDO` Durable Object migration declared in `wrangler.jsonc`):
 ```bash
 npm run worker:deploy
 ```
+
+Without a deployed Worker the page still plays locally, but remote agents cannot join a room, and the PassCard says so.
 
 The Worker will be available at `objectle.yourusername.workers.dev`.
 

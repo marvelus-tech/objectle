@@ -1,42 +1,27 @@
 import React from 'react';
 import { useGameStore } from '../lib/store';
-import { useTheaterStore } from '../lib/theater';
+import { callWebMCPTool } from '../lib/webmcp';
+import { countWrong, maxZoomFor } from '../../../shared/progression';
 
 /**
  * Control panel for rotating and zooming the 3D object
  * Implements GeoGuessr-style verb gating
+ *
+ * Buttons run the same tools agents use, so host actions show up in the
+ * timeline and are visible to connected agents via read_view.
  */
 export default function ViewerControls() {
-  const rotate = useGameStore(state => state.rotate);
-  const zoom = useGameStore(state => state.zoom);
   const zoomLevel = useGameStore(state => state.zoomLevel);
   const revealTier = useGameStore(state => state.revealTier);
   const guesses = useGameStore(state => state.guesses);
   
-  // Gating: early rotation is limited, zoom unlocks progressively
-  const canRotate = true; // Always allow some rotation
-  const maxZoom = Math.min(guesses.filter(guess => !guess.correct).length, 3);
+  const rotate = (axis: 'x' | 'y' | 'z', degrees: number) => void callWebMCPTool('rotate_object', { axis, degrees });
+  const zoom = (level: number) => void callWebMCPTool('zoom', { level });
+  
+  // Gating: rotation is always free, zoom unlocks one level per wrong guess
+  const canRotate = true;
+  const maxZoom = maxZoomFor(countWrong(guesses));
   const rotationStep = revealTier >= 2 ? 30 : 15; // Larger steps when more revealed
-
-  const handleRotate = (axis: 'x' | 'y', degrees: number) => {
-    const eventId = useTheaterStore
-      .getState()
-      .startTool('rotate_object', { axis, degrees }, 'human');
-    rotate(axis, degrees);
-    useTheaterStore
-      .getState()
-      .completeTool(eventId, `Host rotated ${axis}-axis by ${degrees}°.`, true);
-  };
-
-  const handleZoom = (level: number) => {
-    const eventId = useTheaterStore
-      .getState()
-      .startTool('zoom', { level }, 'human');
-    zoom(level);
-    useTheaterStore
-      .getState()
-      .completeTool(eventId, `Host selected zoom level ${level}.`, true);
-  };
   
   return (
     <div style={styles.container}>
@@ -44,7 +29,7 @@ export default function ViewerControls() {
         <h3 style={styles.heading}>Rotate Object</h3>
         <div style={styles.buttonGrid}>
           <button
-            onClick={() => handleRotate('y', -rotationStep)}
+            onClick={() => rotate('y', -rotationStep)}
             style={styles.button}
             disabled={!canRotate}
             title="Rotate left"
@@ -52,7 +37,7 @@ export default function ViewerControls() {
             ← Left
           </button>
           <button
-            onClick={() => handleRotate('y', rotationStep)}
+            onClick={() => rotate('y', rotationStep)}
             style={styles.button}
             disabled={!canRotate}
             title="Rotate right"
@@ -60,7 +45,7 @@ export default function ViewerControls() {
             Right →
           </button>
           <button
-            onClick={() => handleRotate('x', -rotationStep)}
+            onClick={() => rotate('x', -rotationStep)}
             style={styles.button}
             disabled={!canRotate}
             title="Rotate up"
@@ -68,7 +53,7 @@ export default function ViewerControls() {
             ↑ Up
           </button>
           <button
-            onClick={() => handleRotate('x', rotationStep)}
+            onClick={() => rotate('x', rotationStep)}
             style={styles.button}
             disabled={!canRotate}
             title="Rotate down"
@@ -82,7 +67,7 @@ export default function ViewerControls() {
         <h3 style={styles.heading}>Zoom Level</h3>
         <div style={styles.zoomControls}>
           <button
-            onClick={() => handleZoom(zoomLevel - 1)}
+            onClick={() => zoom(zoomLevel - 1)}
             style={styles.button}
             disabled={zoomLevel <= 0}
             title="Zoom out"
@@ -91,7 +76,7 @@ export default function ViewerControls() {
           </button>
           <span style={styles.zoomDisplay}>{zoomLevel + 1} / {maxZoom + 1}</span>
           <button
-            onClick={() => handleZoom(zoomLevel + 1)}
+            onClick={() => zoom(zoomLevel + 1)}
             style={styles.button}
             disabled={zoomLevel >= maxZoom}
             title="Zoom in"

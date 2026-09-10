@@ -1,14 +1,40 @@
 import { create } from 'zustand';
+import {
+  countWrong,
+  maxZoomFor,
+  revealTierFor,
+  type GuessRecord,
+} from '../../../shared/progression';
 
-interface Guess {
-  guessNumber: number;
-  guessText: string;
-  correct: boolean;
-  facets?: {
-    category: { value: string; match: boolean };
-    material: { value: string; match: boolean };
-    scale: { value: string; match: boolean };
-  };
+export type Guess = GuessRecord;
+
+export type Actor = 'agent' | 'host';
+
+/** The most recent thing that happened, used to drive on-screen captions and effects. */
+export interface LiveAction {
+  id: string;
+  ts: number;
+  actor: Actor;
+  tool: 'read_view' | 'rotate_object' | 'zoom' | 'submit_guess' | 'publish_status';
+  args: Record<string, unknown>;
+  success: boolean;
+  /** Short human caption, e.g. "Agent turned the object 30° right" */
+  caption: string;
+  /** Set for submit_guess so the stage can react (shake / celebrate) */
+  guess?: Guess;
+}
+
+/** Snapshot shape shared with the Worker's RoomDO */
+export interface RoomSnapshot {
+  rotationX: number;
+  rotationY: number;
+  rotationZ: number;
+  zoomLevel: number;
+  revealTier: number;
+  guesses: Guess[];
+  gameOver: boolean;
+  won: boolean;
+  lastAgentEventAt: number | null;
 }
 
 interface GameState {
@@ -17,153 +43,123 @@ interface GameState {
   date: string | null;
   objectKey: string | null;
   visualProfile: string | null;
+  answer: string | null;
   guesses: Guess[];
   gameOver: boolean;
   won: boolean;
-  answer: string | null;
-  
-  // 3D viewer state
+
+  // 3D viewer state (targets; the viewer tweens toward them)
   rotationX: number;
   rotationY: number;
   rotationZ: number;
   zoomLevel: number;
-  revealTier: number; // 0 = silhouette, 1 = partial color, 2 = full color, 3 = full studio
-  
+  revealTier: number; // 0 silhouette, 1 clay, 2 colour, 3 studio
+
+  // Live room (agent bridge)
+  roomCode: string | null;
+  roomConnected: boolean;
+  agentLastSeenAt: number | null;
+  lastAction: LiveAction | null;
+
   // UI state
   loading: boolean;
   error: string | null;
   showShareModal: boolean;
-  
+
   // Actions
-  setPlayerId: (id: string) => void;
-  initGame: (date: string, objectKey: string, visualProfile: string) => void;
+  initGame: (date: string, objectKey: string, visualProfile?: string) => void;
   addGuess: (guess: Guess) => void;
   setGameOver: (won: boolean, answer?: string) => void;
   rotate: (axis: 'x' | 'y' | 'z', degrees: number) => void;
   zoom: (level: number) => void;
-  setRevealTier: (tier: number) => void;
+  setRoom: (code: string | null, connected: boolean) => void;
+  applySnapshot: (snapshot: RoomSnapshot) => void;
+  setLastAction: (action: LiveAction) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   toggleShareModal: () => void;
-  resetGame: () => void;
 }
 
-// Generate a unique player ID (stored in localStorage)
 function getOrCreatePlayerId(): string {
   const stored = localStorage.getItem('objectle_player_id');
   if (stored) return stored;
-  
-  const newId = `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const newId = `player_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
   localStorage.setItem('objectle_player_id', newId);
   return newId;
 }
 
+const INITIAL_VIEW = { rotationX: 15, rotationY: 30, rotationZ: 0, zoomLevel: 0, revealTier: 0 };
+
 export const useGameStore = create<GameState>((set) => ({
-  // Initial state
   playerId: getOrCreatePlayerId(),
   date: null,
   objectKey: null,
   visualProfile: null,
+  answer: null,
   guesses: [],
   gameOver: false,
   won: false,
-  answer: null,
-  
-  rotationX: 15, // Slightly tilted initial pose
-  rotationY: 30,
-  rotationZ: 0,
-  zoomLevel: 0, // Start at base zoom
-  revealTier: 0, // Start with silhouette
-  
+  ...INITIAL_VIEW,
+
+  roomCode: null,
+  roomConnected: false,
+  agentLastSeenAt: null,
+  lastAction: null,
+
   loading: false,
   error: null,
   showShareModal: false,
-  
-  // Actions
-  setPlayerId: (id) => set({ playerId: id }),
-  
+
   initGame: (date, objectKey, visualProfile) => set({
     date,
     objectKey,
-    visualProfile,
+    visualProfile: visualProfile ?? null,
+    answer: null,
     guesses: [],
     gameOver: false,
     won: false,
-    answer: null,
-    rotationX: 15,
-    rotationY: 30,
-    rotationZ: 0,
-    zoomLevel: 0,
-    revealTier: 0,
+    ...INITIAL_VIEW,
   }),
-  
+
+  // Local (offline) progression. In room mode the Worker computes this and we applySnapshot.
   addGuess: (guess) => set((state) => {
-    const newGuesses = [...state.guesses, guess];
-    const wrongGuesses = newGuesses.filter(g => !g.correct).length;
-    
-    // Heardle-style zoom progression: unlock zoom levels with wrong guesses
-    const newZoomLevel = Math.min(wrongGuesses, 3);
-    
-    // Reveal tier progression:
-    // 0 guesses: silhouette only
-    // 1+ guesses: partial color
-    // 3+ guesses: full color
-    // 5+ guesses: full studio lighting
-    let newRevealTier = 0;
-    if (wrongGuesses >= 5) newRevealTier = 3;
-    else if (wrongGuesses >= 3) newRevealTier = 2;
-    else if (wrongGuesses >= 1) newRevealTier = 1;
-    
+    const guesses = [...state.guesses, guess];
+    const wrong = countWrong(guesses);
     return {
-      guesses: newGuesses,
-      zoomLevel: newZoomLevel,
-      revealTier: newRevealTier,
+      guesses,
+      zoomLevel: Math.max(state.zoomLevel, maxZoomFor(wrong)),
+      revealTier: guess.correct ? 3 : revealTierFor(wrong),
     };
   }),
-  
-  setGameOver: (won, answer) => set({
-    gameOver: true,
-    won,
-    answer: answer ?? null,
-  }),
-  
+
+  setGameOver: (won, answer) => set({ gameOver: true, won, answer: answer ?? null }),
+
   rotate: (axis, degrees) => set((state) => {
-    const key = `rotation${axis.toUpperCase()}` as keyof Pick<GameState, 'rotationX' | 'rotationY' | 'rotationZ'>;
-    return {
-      [key]: state[key] + degrees,
-    };
+    const key = `rotation${axis.toUpperCase()}` as 'rotationX' | 'rotationY' | 'rotationZ';
+    return { [key]: state[key] + degrees };
   }),
-  
-  zoom: (level) => set((state) => {
-    // Each wrong guess unlocks one Heardle-style zoom level.
-    const wrongGuesses = state.guesses.filter(guess => !guess.correct).length;
-    const maxZoom = Math.min(wrongGuesses, 3);
-    return {
-      zoomLevel: Math.max(0, Math.min(level, maxZoom)),
-    };
+
+  zoom: (level) => set((state) => ({
+    zoomLevel: Math.max(0, Math.min(level, maxZoomFor(countWrong(state.guesses)))),
+  })),
+
+  setRoom: (code, connected) => set({ roomCode: code, roomConnected: connected }),
+
+  applySnapshot: (s) => set({
+    rotationX: s.rotationX,
+    rotationY: s.rotationY,
+    rotationZ: s.rotationZ,
+    zoomLevel: s.zoomLevel,
+    revealTier: s.revealTier,
+    guesses: s.guesses,
+    gameOver: s.gameOver,
+    won: s.won,
+    agentLastSeenAt: s.lastAgentEventAt,
   }),
-  
-  setRevealTier: (tier) => set({ revealTier: tier }),
-  
+
+  setLastAction: (action) => set({ lastAction: action }),
+
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
   toggleShareModal: () => set((state) => ({ showShareModal: !state.showShareModal })),
-  
-  resetGame: () => set({
-    date: null,
-    objectKey: null,
-    visualProfile: null,
-    guesses: [],
-    gameOver: false,
-    won: false,
-    answer: null,
-    rotationX: 15,
-    rotationY: 30,
-    rotationZ: 0,
-    zoomLevel: 0,
-    revealTier: 0,
-    loading: false,
-    error: null,
-    showShareModal: false,
-  }),
 }));

@@ -23,7 +23,7 @@ export default function ToolLog() {
         aria-expanded={expanded}
       >
         <span>
-          <span style={styles.eyebrow}>Live director’s log</span>
+          <span style={styles.eyebrow}>Live director's log</span>
           <span style={styles.title}>Agent timeline</span>
         </span>
         <span style={styles.count}>{events.length}</span>
@@ -33,7 +33,7 @@ export default function ToolLog() {
         <div style={styles.logContainer} aria-live="polite">
           {events.length === 0 ? (
             <div style={styles.emptyState}>
-              <p style={styles.emptyText}>Waiting for an agent…</p>
+              <p style={styles.emptyText}>Waiting for an agent...</p>
               <p style={styles.emptySubtext}>
                 Every observation, action, and result will unfold here.
               </p>

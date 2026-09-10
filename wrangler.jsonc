@@ -1,22 +1,10 @@
 {
+  // Must match the deployed Worker so wrangler deploy updates
+  // objectle-worker-demo.marvelus.workers.dev instead of creating a new script.
   "name": "objectle-worker-demo",
   "main": "worker/index.ts",
   "compatibility_date": "2026-09-10",
   "compatibility_flags": ["nodejs_compat"],
-  "durable_objects": {
-    "bindings": [
-      {
-        "name": "THEATER_ROOMS",
-        "class_name": "TheaterRoom"
-      }
-    ]
-  },
-  "migrations": [
-    {
-      "tag": "v1",
-      "new_sqlite_classes": ["TheaterRoom"]
-    }
-  ],
   "d1_databases": [
     {
       "binding": "DB",
@@ -24,6 +12,12 @@
       "database_id": "3fbf385e-1743-4c30-82de-b857725e78b0"
     }
   ],
+  // One Durable Object per live room: holds viewer state + tool event log so the
+  // host screen can animate what an agent does. SQLite-backed classes are free-tier eligible.
+  "durable_objects": {
+    "bindings": [{ "name": "ROOM", "class_name": "RoomDO" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RoomDO"] }],
   "vars": {
     "ENVIRONMENT": "production"
   },

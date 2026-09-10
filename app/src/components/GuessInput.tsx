@@ -1,17 +1,13 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../lib/store';
-import { api } from '../lib/api';
-import { useTheaterStore } from '../lib/theater';
+import { runTool } from '../lib/webmcp';
 
 export default function GuessInput() {
   const [input, setInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
   
-  const playerId = useGameStore(state => state.playerId);
   const guesses = useGameStore(state => state.guesses);
   const gameOver = useGameStore(state => state.gameOver);
-  const addGuess = useGameStore(state => state.addGuess);
-  const setGameOver = useGameStore(state => state.setGameOver);
   const setError = useGameStore(state => state.setError);
   
   const remainingGuesses = 6 - guesses.length;
@@ -23,48 +19,15 @@ export default function GuessInput() {
     
     setSubmitting(true);
     setError(null);
-    const guess = input.trim();
-    const eventId = useTheaterStore
-      .getState()
-      .startTool('submit_guess', { name: guess }, 'human');
     
     try {
-      const result = await api.checkGuess(playerId, guess);
-      
-      addGuess({
-        guessNumber: result.guessNumber,
-        guessText: guess,
-        correct: result.correct,
-        facets: result.facets,
-      });
-      
-      if (result.gameOver) {
-        setGameOver(result.won, result.answer);
-      }
-
-      useTheaterStore.getState().completeTool(
-        eventId,
-        result.correct
-          ? `“${guess}” is correct.`
-          : `“${guess}” was not the object.`,
-        true,
-        {
-          guess,
-          guessNumber: result.guessNumber,
-          correct: result.correct,
-          remaining: Math.max(0, 6 - result.guessNumber),
-          answer: result.answer,
-          facets: result.facets,
-        },
-      );
-      
+      // Same path as agents: the room (or local fallback) updates the store for us
+      const result = await runTool('submit_guess', { name: input.trim() }, 'host');
+      if (!result.success) throw new Error(result.text);
       setInput('');
     } catch (error) {
       console.error('Failed to submit guess:', error);
       setError('Failed to submit guess. Please try again.');
-      useTheaterStore
-        .getState()
-        .completeTool(eventId, 'The guess could not be submitted.', false);
     } finally {
       setSubmitting(false);
     }
