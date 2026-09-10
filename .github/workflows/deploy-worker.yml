@@ -1,0 +1,60 @@
+name: Deploy Worker
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Room API (/api/room/:code) lives on the Worker. If this job is skipped or
+# fails, agents get plain "Not Found" from objectle-worker-demo — that is the
+# XB7J outage mode. Never soft-skip deploy.
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Require Cloudflare credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID must be set as repository secrets."
+            echo "Without them, /api/room/* stays on the stale Worker and agents get Not Found."
+            exit 1
+          fi
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Deploy Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler deploy
+
+      - name: Smoke room routes
+        run: |
+          set -euo pipefail
+          HOST="https://objectle-worker-demo.marvelus.workers.dev"
+          code=$(curl -sS -o /tmp/health.json -w '%{http_code}' "$HOST/api/health")
+          echo "health=$code $(cat /tmp/health.json)"
+          test "$code" = "200"
+          code=$(curl -sS -o /tmp/room.txt -w '%{http_code}' "$HOST/api/room/SMOK")
+          echo "room=$code"
+          test "$code" = "200"
+          head -c 200 /tmp/room.txt; echo
+          code=$(curl -sS -o /tmp/view.txt -w '%{http_code}' "$HOST/api/room/SMOK/tools/read_view")
+          echo "read_view=$code"
+          test "$code" = "200"
+          head -c 200 /tmp/view.txt; echo

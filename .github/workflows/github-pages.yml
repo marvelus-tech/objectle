@@ -36,12 +36,14 @@ jobs:
         run: npm ci
 
       - name: Deploy Worker
-        if: ${{ env.CLOUDFLARE_API_TOKEN != '' }}
+        if: ${{ env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != '' }}
         run: npx wrangler deploy
 
-      - name: Explain skipped Worker deployment
-        if: ${{ env.CLOUDFLARE_API_TOKEN == '' }}
-        run: echo "Worker deployment skipped because CLOUDFLARE_API_TOKEN is not configured."
+      - name: Warn if Worker deploy skipped
+        if: ${{ env.CLOUDFLARE_API_TOKEN == '' || env.CLOUDFLARE_ACCOUNT_ID == '' }}
+        run: |
+          echo "::warning::Worker deploy skipped (missing CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID). Room routes stay stale — see Deploy Worker workflow."
+
 
   build:
     runs-on: ubuntu-latest

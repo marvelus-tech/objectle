@@ -12,7 +12,13 @@ import { DurableObject } from 'cloudflare:workers';
 import type { Env } from './env';
 import { getTodayUTC } from './env';
 import { checkGuess, GameError } from './game';
-import { isToolName, normalizeToolArgs, type ToolArgs, type ToolName } from '../shared/tools';
+import {
+  isToolName,
+  normalizeToolArgs,
+  resolveToolName,
+  type ToolArgs,
+  type ToolName,
+} from '../shared/tools';
 import {
   countWrong,
   describeGuess,
@@ -128,14 +134,15 @@ export class RoomDO extends DurableObject<Env> {
     let text: string;
     let success = true;
     let args: ToolArgs = rawArgs;
+    const resolved = resolveToolName(tool) ?? (isToolName(tool) ? tool : null);
 
-    if (!isToolName(tool)) {
+    if (!resolved) {
       text = `Unknown tool "${tool}". Available: read_view, rotate_object, zoom, publish_status, submit_guess.`;
       success = false;
     } else {
       try {
-        args = normalizeToolArgs(tool, rawArgs);
-        text = await this.execute(tool, args);
+        args = normalizeToolArgs(resolved, rawArgs);
+        text = await this.execute(resolved, args);
       } catch (err) {
         success = false;
         text = err instanceof Error ? err.message : String(err);
@@ -146,7 +153,7 @@ export class RoomDO extends DurableObject<Env> {
       seq: ++this.state.seq,
       ts: Date.now(),
       actor,
-      tool: isToolName(tool) ? tool : 'read_view',
+      tool: resolved ?? 'read_view',
       args,
       result: text,
       success,
