@@ -140,8 +140,13 @@ export default function App() {
           </NeonStage>
           <ViewerControls />
           <PassCard />
-          <ProgressionChrome />
-          <HypothesisBoard />
+          <details style={styles.moreDetails}>
+            <summary style={styles.moreSummary}>Progression & theory</summary>
+            <div style={styles.moreBody}>
+              <ProgressionChrome />
+              <HypothesisBoard />
+            </div>
+          </details>
         </div>
 
         {/* Right: agent theater */}
@@ -217,6 +222,27 @@ const styles: Record<string, React.CSSProperties> = {
     position: 'sticky',
     top: 'var(--space-4)',
     zIndex: 10,
+  },
+  moreDetails: {
+    borderRadius: 'var(--radius-lg)',
+    border: '1px solid var(--border-subtle)',
+    background: 'var(--glass)',
+    padding: 'var(--space-3) var(--space-4)',
+  },
+  moreSummary: {
+    cursor: 'pointer',
+    fontSize: '11px',
+    fontWeight: 600,
+    letterSpacing: '0.1em',
+    textTransform: 'uppercase',
+    color: 'var(--ink-tertiary)',
+    listStyle: 'none',
+  },
+  moreBody: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 'var(--space-4)',
+    marginTop: 'var(--space-4)',
   },
   centered: {
     display: 'flex',
