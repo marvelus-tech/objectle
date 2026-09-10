@@ -1,177 +1,39 @@
-# Objectle Demo Script for AI Agents
+# Objectle demo (Foresight-style) — for friends & prospects
 
-This script demonstrates how an AI agent can play Objectle using the WebMCP tools.
+**Goal:** agent moves the 3D object on the open tab. No Cloudflare deploy required.
 
-## Prerequisites
+## 60-second host script
 
-1. The Objectle Worker must be running (locally or deployed)
-2. The WebMCP server must be configured in your MCP client
-3. Add this to your MCP settings:
+1. Open the game (local or Pages):
+   ```bash
+   npm run dev:local
+   # or production Pages once this PR is on main:
+   # https://marvelus-tech.github.io/objectle/?demo=1
+   ```
+2. Keep that tab visible on the big screen.
+3. Click **Prove it: rotate 45°** on the Demo strip — the object should turn.
+4. Click **Agent tools** → **Rotate Y+30** / **Read view**.
+5. Click **Copy agent prompt** and paste into Grok / Claude / ChatGPT.
 
-```json
-{
-  "mcpServers": {
-    "objectle-viewer": {
-      "command": "node",
-      "args": ["worker/mcp-server.js"],
-      "env": {
-        "WORKER_API": "http://localhost:8787/api"
-      }
-    }
-  }
-}
-```
+## What prospects should see
 
-## Gameplay Strategy for Agents
+| Action | On-screen proof |
+|--------|-----------------|
+| `rotate_object` | Object turns on the neon stage |
+| `read_view` | Text description + tool log row |
+| `publish_status` | Stage caption / status line updates |
+| `submit_guess` | Guess history + facet chips |
 
-### Step 1: Initial Observation
-Start by reading the current view to understand what you can see.
+## Why this matches Foresight
 
-```
-Tool: read_view
-```
+- Tools live **on the page** (`document.modelContext` + polyfill).
+- Agent panel is the same-tab fallback when the browser has no WebMCP host.
+- Worker / room URLs are optional sync — demos never wait on Cloudflare secrets.
 
-At the beginning, you will see only a dark silhouette. Note the general shape and proportions.
+## Optional: live shared room
 
-### Step 2: Explore Different Angles
-Rotate the object to see it from multiple perspectives.
+When `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` are set and the Worker is redeployed, the same tools also work via:
 
-```
-Tool: rotate_object
-Arguments: { "axis": "y", "degrees": 30 }
+`https://objectle-worker-demo.marvelus.workers.dev/api/room/ABCD/tools/...`
 
-Tool: rotate_object
-Arguments: { "axis": "x", "degrees": 15 }
-
-Tool: read_view
-```
-
-Rotation is always available. Try to identify key features:
-- Overall shape (round, rectangular, tall, wide)
-- Distinctive parts (handles, legs, spouts, wheels)
-- Proportions and symmetry
-
-### Step 3: Make Your First Guess
-Based on the silhouette and rotations, make an educated guess.
-
-```
-Tool: submit_guess
-Arguments: { "name": "chair" }
-```
-
-The response will include:
-- Whether the guess is correct
-- Facet feedback (category, material, scale)
-- Updated reveal tier (more details now visible)
-
-### Step 4: Use Facet Feedback
-The facet feedback tells you:
-- **Category** (furniture, vehicle, kitchenware, tool, etc.)
-- **Material** (wood, metal, ceramic, plastic, etc.)
-- **Scale** (small, medium, large)
-
-If your guess was wrong but matched the category, you are in the right domain. Adjust based on material and scale clues.
-
-### Step 5: Unlock Zoom
-After your first wrong guess, zoom becomes available. Use it to see details more clearly.
-
-```
-Tool: zoom
-Arguments: { "level": 1 }
-
-Tool: read_view
-```
-
-Higher zoom levels unlock with more wrong guesses (Heardle-style progression).
-
-### Step 6: Iterate
-Continue rotating, zooming, and reading the view. With each wrong guess:
-- The object becomes less silhouetted (more color and detail)
-- Higher zoom levels unlock
-- Studio lighting improves
-
-### Step 7: Narrow Down and Guess
-Use all available information to make your final guesses strategically.
-
-```
-Tool: submit_guess
-Arguments: { "name": "office chair" }
-```
-
-Remember: synonyms are accepted (e.g., bike = bicycle, cup = mug).
-
-## Example Full Playthrough
-
-```
-1. read_view
-   → "A dark silhouette... somewhat cylindrical with a handle-like protrusion"
-
-2. rotate_object { "axis": "y", "degrees": 45 }
-   → See it from the side
-
-3. read_view
-   → "The handle is curved, there is a tapered body"
-
-4. publish_status {
-     "headline": "The profile suggests a handled vessel",
-     "rationale": "The curved projection and tapered body point to kitchenware.",
-     "candidates": [{ "name": "pitcher", "confidence": 55 }, { "name": "mug", "confidence": 35 }],
-     "next": "guess pitcher",
-     "confidence": "medium"
-   }
-
-5. submit_guess { "name": "pitcher" }
-   → Incorrect. Category: kitchenware ✓, Material: ceramic ✗, Scale: small ✓
-   → Reveal tier increased. More detail visible.
-
-6. publish_status {
-     "headline": "Keeping small kitchenware, ruling out ceramic",
-     "rationale": "Category and scale matched; material did not.",
-     "candidates": [{ "name": "mug", "confidence": 70 }],
-     "next": "zoom in, then inspect again",
-     "confidence": "high"
-   }
-
-7. zoom { "level": 1 }
-   → Get closer
-
-8. read_view
-   → "Now see more detail: a cylindrical body, possibly a mug or cup"
-
-9. submit_guess { "name": "mug" }
-   → Correct! You won in 2 guesses.
-```
-
-## Tips for Agents
-
-1. **Start broad**: Look at overall shape before details
-2. **Use facets**: Category/material/scale feedback is very informative
-3. **Rotate systematically**: Try Y-axis first (left/right), then X-axis (up/down)
-4. **Zoom progressively**: Each wrong guess unlocks more zoom
-5. **Think synonyms**: The game accepts common variations (bike/bicycle, lamp/light)
-6. **Watch the reveal tier**: As it increases, read_view gives richer descriptions
-7. **Narrate for the room**: Use publish_status for short public summaries, not private chain-of-thought
-
-## Scoring
-
-- 1-2 guesses: Expert
-- 3-4 guesses: Good
-- 5-6 guesses: Solved
-- 6+ guesses: Failed
-
-Streaks are tracked across days. Can you maintain a winning streak?
-
-## Share Your Results
-
-After completing the game, you can share your results in Worldle-style format:
-
-```
-Objectle 2026-09-06 2/6
-
-🟥🟩🟩
-🟩🟩🟩
-
-https://marvelus-tech.github.io/objectle/
-```
-
-Green squares indicate matching facets, red squares indicate mismatches.
+Until then, same-tab tools are the demo path.

@@ -1,4 +1,4 @@
-/* Objectle agent prompt builder (static page; mirror of app/src/lib/prompt.ts) */
+/* Objectle agent prompt builder (static pass page; mirror of app/src/lib/prompt.ts) */
 (function (global) {
   "use strict";
 
@@ -19,7 +19,6 @@
     return API;
   }
 
-  /* Room code from ?room=ABCD (the host screen puts it in the QR). */
   function roomCode() {
     if (typeof document === "undefined" || !document.location) return null;
     var match = /[?&]room=([A-Za-z0-9]{4,8})/.exec(document.location.search);
@@ -36,23 +35,21 @@
 
   function agentText() {
     var code = roomCode();
-    if (!code) {
-      return (
-        "You are playing Objectle, a daily 3D object guessing game.\n\n" +
-        "Ask your human for the 4-letter room code shown on their screen, then fetch\n" +
-        apiUrl() + "/room/<CODE>\n" +
-        "and follow the manual it returns. Host screen: " + gameUrl()
-      );
-    }
+    var room = code || "ROOM";
+    var host = gameUrl();
     return (
-      "You are playing Objectle, a daily 3D object guessing game. A human is watching your moves live on a big screen (room " + code + ").\n\n" +
-      "Step 1: Fetch this URL and read it. It is your room manual with the exact tool URLs:\n" +
-      manualUrl(code) + "\n\n" +
-      "Step 2: Play by fetching the tool URLs (plain GET requests). Every fetch is shown instantly on the human's screen, so narrate in one short sentence what you are doing between calls.\n" +
-      "  read_view, rotate_object(axis, degrees), zoom(level), publish_status(headline), submit_guess(name)\n" +
-      "  6 guesses. Facet feedback after each guess: category, material, scale.\n\n" +
-      "If your client supports MCP connectors, add " + mcpUrl(code) + " (Streamable HTTP, no auth) to get the same tools natively.\n\n" +
-      "Start now with read_view."
+      "You are playing Objectle, a daily 3D object guessing game.\n" +
+      "A human is watching the open Objectle tab (room " + room + "): " + host + "\n" +
+      "Keep that tab visible.\n\n" +
+      "Preferred path (same as Foresight shop):\n" +
+      "1) If you can call page WebMCP tools on the Objectle tab, use them directly:\n" +
+      "   read_view, rotate_object({axis, degrees}), zoom({level}), publish_status({headline}), submit_guess({name})\n" +
+      "2) After each move, tell your human to watch the Objectle stage (it should animate).\n\n" +
+      "Fallback if page tools are unavailable" + (code ? "" : " (ask your human for the 4-letter room code first)") + ":\n" +
+      "- Fetch the room manual: " + (code ? manualUrl(code) : apiUrl() + "/room/<CODE>") + "\n" +
+      "- Or add MCP: " + (code ? mcpUrl(code) : apiUrl().replace(/\/api$/, "") + "/mcp/<CODE>") + "\n\n" +
+      "Rules: 6 guesses. Facet feedback after each guess (category, material, scale). Synonyms count.\n" +
+      "Start now with read_view, then rotate_object around y by 30, then read_view again."
     );
   }
 

@@ -2,7 +2,9 @@
 
 **Goal:** get a learning agent driving the host UI **without** Cloudflare deploy credentials.
 
-This is the store-sim path: one local process pair, shared room state, plain HTTP tool calls.
+For the friend/prospect demo (Foresight-style same-tab tools), see [DEMO.md](./DEMO.md) first.
+
+This file is the store-sim path: one local process pair, shared room state, plain HTTP tool calls.
 
 ## One command
 

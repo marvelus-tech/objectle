@@ -1,26 +1,44 @@
-import React, { useState } from 'react';
-import { webmcpTools, callWebMCPTool } from '../lib/webmcp';
+import React, { useEffect, useState } from 'react';
+import { webmcpTools, callWebMCPTool, openAgentPanel } from '../lib/webmcp';
 
 /**
- * Agent Fallback Panel (Foresight Shop pattern)
- * Visible panel where agents can execute tools and see results
+ * Foresight-style Agent Tools panel.
+ * Always available on this tab — the demo path when Cloudflare is down.
  */
 export default function AgentPanel() {
   const [selectedTool, setSelectedTool] = useState<string>(webmcpTools[0]?.name || '');
-  const [toolArgs, setToolArgs] = useState('{}');
+  const [toolArgs, setToolArgs] = useState('{"axis":"y","degrees":30}');
   const [result, setResult] = useState('');
   const [executing, setExecuting] = useState(false);
-  const [showPanel, setShowPanel] = useState(false);
-  
+  const [showPanel, setShowPanel] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const q = new URLSearchParams(window.location.search);
+    return q.get('demo') === '1' || q.get('agent') === '1';
+  });
+
+  useEffect(() => {
+    const open = () => setShowPanel(true);
+    window.addEventListener('objectle:open-agent-panel', open);
+    return () => window.removeEventListener('objectle:open-agent-panel', open);
+  }, []);
+
+  useEffect(() => {
+    // Seed sensible JSON args when the tool changes.
+    if (selectedTool === 'rotate_object') setToolArgs('{"axis":"y","degrees":30}');
+    else if (selectedTool === 'zoom') setToolArgs('{"level":1}');
+    else if (selectedTool === 'submit_guess') setToolArgs('{"name":"mug"}');
+    else if (selectedTool === 'publish_status') {
+      setToolArgs('{"headline":"Checking the silhouette for a handle","confidence":"medium"}');
+    } else setToolArgs('{}');
+  }, [selectedTool]);
+
   const handleExecute = async () => {
     if (!selectedTool) return;
-    
     setExecuting(true);
     setResult('');
-    
     try {
-      const args = JSON.parse(toolArgs);
-      const output = await callWebMCPTool(selectedTool, args);
+      const args = JSON.parse(toolArgs || '{}');
+      const output = await callWebMCPTool(selectedTool, args, 'agent');
       setResult(output);
     } catch (error) {
       setResult(`Error: ${error}`);
@@ -28,94 +46,134 @@ export default function AgentPanel() {
       setExecuting(false);
     }
   };
-  
+
+  const quick = async (tool: string, args: Record<string, unknown>) => {
+    setShowPanel(true);
+    setSelectedTool(tool);
+    setToolArgs(JSON.stringify(args));
+    setExecuting(true);
+    setResult('');
+    try {
+      setResult(await callWebMCPTool(tool, args, 'agent'));
+    } catch (error) {
+      setResult(`Error: ${error}`);
+    } finally {
+      setExecuting(false);
+    }
+  };
+
   const tool = webmcpTools.find(t => t.name === selectedTool);
-  
+
   return (
-    <div className="agent-panel-shell" style={styles.container}>
+    <div style={styles.container}>
       <button
+        type="button"
         onClick={() => setShowPanel(!showPanel)}
         style={styles.toggleButton}
         title="Agent Tools Panel"
       >
         Agent Tools {showPanel ? '▼' : '▲'}
       </button>
-      
+
       {showPanel && (
-        <div className="agent-panel-drawer" style={styles.panel}>
-          <h3 style={styles.heading}>WebMCP Tools</h3>
+        <div style={styles.panel}>
+          <h3 style={styles.heading}>Agent tools</h3>
           <p style={styles.subtitle}>
-            Agents: These tools are available via the page modelContext API
+            Same tools WebMCP agents call. Run them here and watch the stage move — no Cloudflare required.
           </p>
-          
+
+          <div style={styles.quickRow}>
+            <button type="button" style={styles.quick} onClick={() => quick('read_view', {})}>
+              Read view
+            </button>
+            <button
+              type="button"
+              style={styles.quick}
+              onClick={() => quick('rotate_object', { axis: 'y', degrees: 30 })}
+            >
+              Rotate Y+30
+            </button>
+            <button
+              type="button"
+              style={styles.quick}
+              onClick={() =>
+                quick('publish_status', {
+                  headline: 'Silhouette looks like a vessel',
+                  confidence: 'medium',
+                })
+              }
+            >
+              Status
+            </button>
+          </div>
+
           <div style={styles.section}>
-            <label style={styles.label}>Select Tool:</label>
+            <label style={styles.label}>Tool</label>
             <select
               value={selectedTool}
-              onChange={(e) => setSelectedTool(e.target.value)}
+              onChange={e => setSelectedTool(e.target.value)}
               style={styles.select}
             >
-              {webmcpTools.map(tool => (
-                <option key={tool.name} value={tool.name}>
-                  {tool.name}
+              {webmcpTools.map(t => (
+                <option key={t.name} value={t.name}>
+                  {t.name}
                 </option>
               ))}
             </select>
           </div>
-          
+
           {tool && (
             <div style={styles.section}>
               <div style={styles.toolInfo}>
-                <strong>Description:</strong>
+                <strong>Description</strong>
                 <p style={styles.description}>{tool.description}</p>
-                
-                <strong>Schema:</strong>
-                <pre style={styles.schema}>
-                  {JSON.stringify(tool.inputSchema, null, 2)}
-                </pre>
+                <strong>Schema</strong>
+                <pre style={styles.schema}>{JSON.stringify(tool.inputSchema, null, 2)}</pre>
               </div>
             </div>
           )}
-          
+
           <div style={styles.section}>
-            <label style={styles.label}>Arguments (JSON):</label>
+            <label style={styles.label}>Arguments (JSON)</label>
             <textarea
               value={toolArgs}
-              onChange={(e) => setToolArgs(e.target.value)}
+              onChange={e => setToolArgs(e.target.value)}
               style={styles.textarea}
               rows={4}
-              placeholder='{"axis": "y", "degrees": 30}'
+              placeholder='{"axis":"y","degrees":30}'
             />
           </div>
-          
+
           <button
+            type="button"
             onClick={handleExecute}
             disabled={executing}
-            style={{
-              ...styles.executeButton,
-              opacity: executing ? 0.6 : 1,
-            }}
+            style={{ ...styles.executeButton, opacity: executing ? 0.6 : 1 }}
           >
-            {executing ? 'Executing...' : 'Execute Tool'}
+            {executing ? 'Running…' : 'Execute tool'}
           </button>
-          
+
           {result && (
             <div style={styles.resultSection}>
-              <strong>Result:</strong>
+              <strong>Result</strong>
               <pre style={styles.result}>{result}</pre>
               <button
+                type="button"
                 onClick={() => navigator.clipboard.writeText(result)}
                 style={styles.copyButton}
               >
-                Copy Result
+                Copy result
               </button>
             </div>
           )}
-          
+
           <div style={styles.footer}>
             <p style={styles.footerText}>
-              Agents can call these tools directly without this panel.
-              This fallback UI is for testing and demonstration.
+              Tip: add <code>?demo=1</code> to the URL to open this panel automatically. Or call{' '}
+              <button type="button" style={styles.linkish} onClick={() => openAgentPanel()}>
+                openAgentPanel()
+              </button>
+              .
             </p>
           </div>
         </div>
@@ -126,159 +184,160 @@ export default function AgentPanel() {
 
 const styles: Record<string, React.CSSProperties> = {
   container: {
-    position: 'fixed' as const,
-    bottom: 'var(--space-5)',
-    right: 'var(--space-5)',
+    position: 'fixed',
+    bottom: 'var(--space-5, 20px)',
+    right: 'var(--space-5, 20px)',
     zIndex: 1000,
   },
   toggleButton: {
-    padding: 'var(--space-3) var(--space-5)',
-    background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-magenta))',
-    color: 'white',
+    padding: '10px 16px',
+    background: 'linear-gradient(135deg, #2EE6D6, #FF5EC8)',
+    color: '#101018',
     border: 'none',
-    borderRadius: 'var(--radius-md)',
-    fontSize: 'var(--text-sm)',
-    fontFamily: 'var(--font-ui)',
-    fontWeight: 500,
+    borderRadius: '12px',
+    fontSize: '0.9rem',
+    fontWeight: 700,
     cursor: 'pointer',
-    boxShadow: 'var(--shadow-lg), 0 0 16px var(--neon-glow)',
-    letterSpacing: '0.02em',
+    boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
   },
   panel: {
-    marginTop: 'var(--space-3)',
-    width: '420px',
+    marginTop: '10px',
+    width: 'min(420px, calc(100vw - 32px))',
     maxHeight: '80vh',
-    overflowY: 'auto' as const,
-    background: 'var(--glass)',
+    overflowY: 'auto',
+    background: 'rgba(255,255,255,0.92)',
     backdropFilter: 'blur(14px)',
-    borderRadius: 'var(--radius-xl)',
-    padding: 'var(--space-6)',
-    boxShadow: 'var(--shadow-lg)',
-    border: '1px solid var(--accent-border)',
-    animation: 'fadeScaleIn 220ms ease-out',
+    borderRadius: '16px',
+    padding: '18px',
+    boxShadow: '0 16px 40px rgba(0,0,0,0.2)',
+    border: '1px solid rgba(30,30,30,0.12)',
+    color: '#1c1c1c',
   },
   heading: {
-    fontSize: 'var(--text-xl)',
-    fontFamily: 'var(--font-display)',
+    fontSize: '1.2rem',
+    fontFamily: 'Newsreader, Georgia, serif',
     fontWeight: 600,
-    marginBottom: 'var(--space-2)',
-    color: 'var(--ink)',
+    margin: '0 0 6px',
   },
   subtitle: {
-    fontSize: 'var(--text-sm)',
-    fontFamily: 'var(--font-ui)',
-    color: 'var(--ink-secondary)',
-    marginBottom: 'var(--space-5)',
+    fontSize: '0.85rem',
+    color: '#555',
+    marginBottom: '12px',
   },
-  section: {
-    marginBottom: 'var(--space-5)',
+  quickRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '8px',
+    marginBottom: '14px',
   },
+  quick: {
+    cursor: 'pointer',
+    borderRadius: '999px',
+    border: '1px solid rgba(30,30,30,0.15)',
+    background: '#F4F1EB',
+    padding: '6px 10px',
+    fontSize: '0.78rem',
+    fontWeight: 600,
+  },
+  section: { marginBottom: '14px' },
   label: {
     display: 'block',
-    fontSize: 'var(--text-sm)',
-    fontFamily: 'var(--font-ui)',
-    fontWeight: 600,
-    marginBottom: 'var(--space-2)',
-    color: 'var(--ink)',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.05em',
+    fontSize: '0.72rem',
+    fontWeight: 700,
+    marginBottom: '6px',
+    textTransform: 'uppercase',
+    letterSpacing: '0.06em',
   },
   select: {
     width: '100%',
-    padding: 'var(--space-3)',
-    fontSize: 'var(--text-sm)',
-    fontFamily: 'var(--font-ui)',
-    border: `2px solid var(--border)`,
-    borderRadius: 'var(--radius-md)',
-    outline: 'none',
-    background: 'var(--surface)',
-    color: 'var(--ink)',
+    padding: '10px',
+    fontSize: '0.9rem',
+    border: '2px solid #ddd',
+    borderRadius: '10px',
+    background: '#fff',
   },
   toolInfo: {
-    background: 'var(--info-bg)',
-    padding: 'var(--space-4)',
-    borderRadius: 'var(--radius-md)',
-    fontSize: 'var(--text-sm)',
-    fontFamily: 'var(--font-ui)',
-    border: `1px solid var(--border-subtle)`,
+    background: '#F7F5F0',
+    padding: '12px',
+    borderRadius: '10px',
+    fontSize: '0.85rem',
+    border: '1px solid #e6e2da',
   },
-  description: {
-    margin: `var(--space-2) 0 var(--space-4) 0`,
-    color: 'var(--ink-secondary)',
-  },
+  description: { margin: '6px 0 10px', color: '#444' },
   schema: {
-    background: 'var(--surface)',
-    padding: 'var(--space-3)',
-    borderRadius: 'var(--radius-sm)',
-    fontSize: 'var(--text-xs)',
-    fontFamily: 'var(--font-ui), monospace',
-    overflow: 'auto' as const,
-    maxHeight: '150px',
-    border: `1px solid var(--border-subtle)`,
+    background: '#fff',
+    padding: '8px',
+    borderRadius: '8px',
+    fontSize: '0.72rem',
+    overflow: 'auto',
+    maxHeight: '120px',
+    border: '1px solid #e6e2da',
   },
   textarea: {
     width: '100%',
-    padding: 'var(--space-3)',
-    fontSize: 'var(--text-sm)',
-    fontFamily: 'var(--font-ui), monospace',
-    border: `2px solid var(--border)`,
-    borderRadius: 'var(--radius-md)',
-    outline: 'none',
-    resize: 'vertical' as const,
-    background: 'var(--surface)',
-    color: 'var(--ink)',
+    padding: '10px',
+    fontSize: '0.85rem',
+    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+    border: '2px solid #ddd',
+    borderRadius: '10px',
+    resize: 'vertical',
+    boxSizing: 'border-box',
   },
   executeButton: {
     width: '100%',
-    padding: 'var(--space-4)',
-    background: 'var(--accent)',
-    color: 'white',
+    padding: '12px',
+    background: '#1c1c1c',
+    color: '#fff',
     border: 'none',
-    borderRadius: 'var(--radius-md)',
-    fontSize: 'var(--text-base)',
-    fontFamily: 'var(--font-ui)',
-    fontWeight: 500,
+    borderRadius: '10px',
+    fontSize: '0.95rem',
+    fontWeight: 600,
     cursor: 'pointer',
   },
   resultSection: {
-    marginTop: 'var(--space-5)',
-    padding: 'var(--space-4)',
-    background: 'var(--info-bg)',
-    borderRadius: 'var(--radius-md)',
-    border: `2px solid var(--accent-border)`,
+    marginTop: '14px',
+    padding: '12px',
+    background: '#F0FBFF',
+    borderRadius: '10px',
+    border: '1px solid #b7e6f5',
   },
   result: {
-    margin: `var(--space-3) 0`,
-    padding: 'var(--space-3)',
-    background: 'var(--surface)',
-    borderRadius: 'var(--radius-sm)',
-    fontSize: 'var(--text-xs)',
-    fontFamily: 'var(--font-ui), monospace',
-    whiteSpace: 'pre-wrap' as const,
-    overflow: 'auto' as const,
-    maxHeight: '200px',
-    border: `1px solid var(--border-subtle)`,
+    margin: '8px 0',
+    padding: '8px',
+    background: '#fff',
+    borderRadius: '8px',
+    fontSize: '0.75rem',
+    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+    whiteSpace: 'pre-wrap',
+    overflow: 'auto',
+    maxHeight: '180px',
   },
   copyButton: {
-    padding: 'var(--space-2) var(--space-4)',
-    background: 'var(--accent)',
-    color: 'white',
+    padding: '6px 10px',
+    background: '#1c1c1c',
+    color: '#fff',
     border: 'none',
-    borderRadius: 'var(--radius-sm)',
-    fontSize: 'var(--text-sm)',
-    fontFamily: 'var(--font-ui)',
+    borderRadius: '8px',
+    fontSize: '0.8rem',
     cursor: 'pointer',
   },
   footer: {
-    marginTop: 'var(--space-5)',
-    paddingTop: 'var(--space-5)',
-    borderTop: `1px solid var(--border-subtle)`,
+    marginTop: '14px',
+    paddingTop: '12px',
+    borderTop: '1px solid #e6e2da',
   },
   footerText: {
-    fontSize: 'var(--text-xs)',
-    fontFamily: 'var(--font-ui)',
-    color: 'var(--ink-tertiary)',
+    fontSize: '0.75rem',
+    color: '#777',
     margin: 0,
-    fontStyle: 'italic' as const,
+  },
+  linkish: {
+    background: 'none',
+    border: 'none',
+    color: '#0a6',
+    cursor: 'pointer',
+    padding: 0,
+    font: 'inherit',
+    textDecoration: 'underline',
   },
 };

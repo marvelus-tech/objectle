@@ -74,6 +74,8 @@ Objectle 2026-09-06 3/6
 
 ### Fastest path (agent drives the UI, no Cloudflare deploy)
 
+Friend/prospect walkthrough: [DEMO.md](./DEMO.md).
+
 ```bash
 npm install
 npm run dev:local

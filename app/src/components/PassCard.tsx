@@ -3,6 +3,7 @@ import QRCode from 'qrcode';
 import { useGameStore } from '../lib/store';
 import { passPageUrl, roomManualUrl } from '../lib/room';
 import { agentPromptFor } from '../lib/prompt';
+import { openAgentPanel } from '../lib/webmcp';
 
 /**
  * Pass to Agent card - Always visible for room demos
@@ -52,7 +53,14 @@ export default function PassCard() {
           )}
           <div style={styles.actions}>
             <button onClick={handleCopy} style={styles.copyButton}>
-              {copied ? 'Copied' : 'Share link'}
+              {copied ? 'Copied' : 'Copy agent prompt'}
+            </button>
+            <button
+              type="button"
+              onClick={() => openAgentPanel()}
+              style={styles.copyButton}
+            >
+              Agent tools
             </button>
             <a
               href={passPageUrl(roomCode)}
