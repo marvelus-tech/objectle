@@ -94,21 +94,21 @@ export interface GuessOutcome {
 
 /** Text returned by submit_guess. */
 export function describeGuess(guessText: string, result: GuessOutcome, revealTier: number): string {
-  let message = `Guess #${result.guessNumber}: "${guessText}"\n\n`;
-  message += result.correct
-    ? 'CORRECT! You won!\n\n'
-    : `Incorrect. ${MAX_GUESSES - result.guessNumber} guesses remaining.\n\n`;
-  message += 'Facet Feedback:\n';
-  message += `Category: ${mark(result.facets.category)}\n`;
-  message += `Material: ${mark(result.facets.material)}\n`;
-  message += `Scale: ${mark(result.facets.scale)}\n\n`;
+  const parts = [
+    `Guess #${result.guessNumber}: "${guessText}"`,
+    result.correct ? 'CORRECT! You won!' : `Incorrect. ${MAX_GUESSES - result.guessNumber} guesses remaining.`,
+    [
+      'Facet Feedback:',
+      `Category: ${mark(result.facets.category)}`,
+      `Material: ${mark(result.facets.material)}`,
+      `Scale: ${mark(result.facets.scale)}`,
+    ].join('\n'),
+  ];
   if (!result.correct) {
-    message += `Reveal tier is now ${revealTier + 1}/${MAX_REVEAL_TIER + 1}. More details are visible.`;
+    parts.push(`Reveal tier is now ${revealTier + 1}/${MAX_REVEAL_TIER + 1}. More details are visible.`);
   }
   if (result.gameOver) {
-    message += result.won
-      ? `\n\nGame Over - You won in ${result.guessNumber} guesses!`
-      : '\n\nGame Over - No guesses remaining.';
+    parts.push(result.won ? `Game Over - You won in ${result.guessNumber} guesses!` : 'Game Over - No guesses remaining.');
   }
-  return message;
+  return parts.join('\n\n');
 }

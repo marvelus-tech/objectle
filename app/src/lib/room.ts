@@ -87,8 +87,12 @@ export async function callRoomTool(
   return data;
 }
 
-/** Fold a snapshot + new events into the store exactly once per event (dedupe by seq). */
-function ingest(state: RoomSnapshot, events: RoomEvent[]): void {
+/**
+ * Fold a snapshot + new events into the store exactly once per event (dedupe by seq).
+ * `replay` is true for the first poll after page load: the timeline is backfilled
+ * but no captions/confetti fire for things that happened before we were watching.
+ */
+function ingest(state: RoomSnapshot, events: RoomEvent[], replay = false): void {
   const store = useGameStore.getState();
   const fresh = events.filter(e => e.seq > lastSeq).sort((a, b) => a.seq - b.seq);
   if (fresh.length === 0) return;
@@ -96,13 +100,9 @@ function ingest(state: RoomSnapshot, events: RoomEvent[]): void {
   lastSeq = fresh[fresh.length - 1].seq;
   store.applySnapshot(state);
 
-  for (const event of fresh) {
-    listeners.forEach(l => l(event));
-    // Only the newest event drives the stage caption/effects
-    if (event === fresh[fresh.length - 1]) {
-      store.setLastAction(toLiveAction(event, state.guesses));
-    }
-  }
+  for (const event of fresh) listeners.forEach(l => l(event));
+  // Only the newest event drives the stage caption/effects
+  if (!replay) store.setLastAction(toLiveAction(fresh[fresh.length - 1], state.guesses));
 }
 
 export function toLiveAction(event: RoomEvent, guesses: Guess[]): LiveAction {
@@ -156,6 +156,7 @@ export function startRoomSync(code: string): () => void {
   let stopped = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let failures = 0;
+  let firstPoll = true;
   const store = useGameStore.getState();
   store.setRoom(code, false);
 
@@ -170,7 +171,8 @@ export function startRoomSync(code: string): () => void {
       const data = (await res.json()) as { state: RoomSnapshot; events: RoomEvent[]; now: number };
       failures = 0;
       if (!useGameStore.getState().roomConnected) store.setRoom(code, true);
-      ingest(data.state, data.events);
+      ingest(data.state, data.events, firstPoll);
+      firstPoll = false;
 
       const agentActive = data.state.lastAgentEventAt !== null && data.now - data.state.lastAgentEventAt < AGENT_ACTIVE_WINDOW_MS;
       delay = agentActive ? POLL_ACTIVE_MS : POLL_IDLE_MS;

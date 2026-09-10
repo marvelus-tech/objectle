@@ -13,6 +13,28 @@ Objectle is a daily 3D object guessing game where you have 6 attempts to identif
 - **Facet feedback** after each guess (Worldle-style: category, material, scale)
 - **Synonym matching** so "bike" and "bicycle" are both accepted
 
+## Joining a Room (read this first)
+
+Every game is watched on a **host screen**. The host screen has a 4-letter room code in its URL (`?room=ABCD`), on the PassCard, and inside the QR code. Your tool calls only show up on that screen if you play in the same room.
+
+Three ways to connect, pick whichever your client supports:
+
+1. **Plain URLs (works for any agent that can fetch a page).** Fetch the room manual, then fetch tool URLs with GET:
+   ```
+   GET https://objectle-worker-demo.marvelus.workers.dev/api/room/ABCD
+   GET https://objectle-worker-demo.marvelus.workers.dev/api/room/ABCD/tools/read_view
+   GET https://objectle-worker-demo.marvelus.workers.dev/api/room/ABCD/tools/rotate_object?axis=y&degrees=30
+   GET https://objectle-worker-demo.marvelus.workers.dev/api/room/ABCD/tools/zoom?level=1
+   GET https://objectle-worker-demo.marvelus.workers.dev/api/room/ABCD/tools/submit_guess?name=mug
+   ```
+   Each returns plain text. `POST` with a JSON body (`{"axis":"y","degrees":30}`) returns JSON with the full room state.
+
+2. **MCP over HTTP (Claude.ai connectors, ChatGPT developer mode, Cursor, Claude Code).** Add `https://objectle-worker-demo.marvelus.workers.dev/mcp/ABCD` as a Streamable HTTP server, no auth. You get the four tools below natively.
+
+3. **stdio MCP server (Claude Desktop).** Run `worker/mcp-server.ts` with `WORKER_API` set and either `ROOM_CODE=ABCD` in env or call `join_room("ABCD")` first. It proxies to the same room.
+
+The human sees every call: the object turns, the camera moves, and a caption such as "Agent turned the object 30° right" appears. Narrate briefly between calls so they can follow your reasoning.
+
 ## WebMCP Tools
 
 The game exposes 4 MCP tools for agent interaction:
@@ -121,14 +143,14 @@ Category: furniture ✓
 Material: wood ✓
 Scale: medium ✓
 
-Reveal tier increased to 2/4. More details are now visible.
+Reveal tier is now 2/4. More details are visible.
 ```
 
 **Correct guess response:**
 ```
 Guess #3: "office chair"
 
-🎉 CORRECT! You won!
+CORRECT! You won!
 
 Facet Feedback:
 Category: furniture ✓
@@ -206,47 +228,47 @@ Agent: read_view()
 Response: "A dark gray clay-like object... cylindrical body with a C-shaped handle... appears to be a drinking vessel..."
 
 Agent: submit_guess("mug")
-Response: "🎉 CORRECT! You won in 2 guesses!"
+Response: "CORRECT! You won in 2 guesses!"
 ```
 
 ## MCP Server Setup
 
-Add this to your MCP client configuration file (e.g., `claude_desktop_config.json` for Claude Desktop):
+### Hosted (no install)
+
+Point any MCP client that supports Streamable HTTP at the room URL:
+
+```
+https://objectle-worker-demo.marvelus.workers.dev/mcp/ABCD
+```
+
+Replace `ABCD` with the room code shown on the host screen.
+
+### stdio (Claude Desktop and similar)
+
+Add this to your MCP client configuration file (e.g., `claude_desktop_config.json`):
 
 ```json
 {
-  "mcpServers": {
-    "objectle-viewer": {
-      "command": "node",
-      "args": ["/path/to/objectle/worker/mcp-server.js"],
-      "env": {
-        "WORKER_API": "https://objectle-worker-demo.marvelus.workers.dev/api"
-      }
-    }
-  }
+ "mcpServers": {
+ "objectle-viewer": {
+ "command": "node",
+ "args": ["--experimental-strip-types", "/path/to/objectle/worker/mcp-server.ts"],
+ "env": {
+ "WORKER_API": "https://objectle-worker-demo.marvelus.workers.dev/api",
+ "ROOM_CODE": "ABCD"
+ }
+ }
+ }
 }
 ```
 
-For production (deployed Worker):
-```json
-{
-  "mcpServers": {
-    "objectle-viewer": {
-      "command": "node",
-      "args": ["/path/to/objectle/worker/mcp-server.js"],
-      "env": {
-        "WORKER_API": "https://objectle-worker-demo.marvelus.workers.dev/api"
-      }
-    }
-  }
-}
-```
+Leave out `ROOM_CODE` and call `join_room("ABCD")` if the code changes per session.
 
 ### Verification
 
 After configuring, verify the MCP server is available:
 ```
-List available tools -> Should show: rotate_object, zoom, read_view, submit_guess
+List available tools -> Should show: join_room (stdio only), read_view, rotate_object, zoom, submit_guess
 ```
 
 ## Tips for High Scores
@@ -294,6 +316,9 @@ The three symbols are: [Category] [Material] [Scale]
 **Q: The MCP server is not connecting**
 A: Ensure the Worker is running (locally or deployed). Check the `WORKER_API` environment variable.
 
+**Q: I am playing but the human's screen is not changing**
+A: You are in a different room than the host screen. Ask for the code shown under the QR (or in the page URL after `?room=`) and use it in your tool URLs or MCP URL.
+
 **Q: Zoom is locked at level 0**
 A: You need to make wrong guesses to unlock higher zoom levels (Heardle-style progression).
 
@@ -307,16 +332,16 @@ A: Check the synonyms table in `schema.sql`. You can add more synonyms to the da
 
 If you want to extend the MCP tools or add custom behaviors:
 
-1. Edit `worker/mcp-server.ts`
-2. Rebuild: `npm run build` (if using TypeScript)
-3. Restart the MCP client
+1. Tool schemas live in `shared/tools.ts`; progression rules in `shared/progression.ts` (used by browser, Worker and MCP server)
+2. Room behaviour lives in `worker/room.ts` (`RoomDO`); the HTTP MCP endpoint in `worker/mcp-http.ts`
+3. Run `npm run typecheck`, then `npm run worker:deploy`
 
-The MCP server communicates with the Cloudflare Worker via REST API, so you can also test the Worker independently:
+You can test a room from the shell:
 
 ```bash
-curl -X POST http://localhost:8787/api/check-guess \
-  -H "Content-Type: application/json" \
-  -d '{"playerId": "test", "guess": "chair"}'
+curl http://localhost:8787/api/room/TEST
+curl "http://localhost:8787/api/room/TEST/tools/submit_guess?name=chair"
+curl "http://localhost:8787/api/room/TEST/events?since=0"
 ```
 
 ## Community

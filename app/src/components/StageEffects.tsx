@@ -15,7 +15,7 @@ import { useGameStore, type LiveAction } from '../lib/store';
 const CAPTION_MS = 2600;
 const FLASH_MS = 700;
 const SHAKE_MS = 320;
-const CONFETTI_MS = 1400;
+const CONFETTI_MS = 2000;
 
 export default function StageEffects() {
   const lastAction = useGameStore(state => state.lastAction);
@@ -26,8 +26,6 @@ export default function StageEffects() {
 
   useEffect(() => {
     if (!lastAction) return;
-    // Ignore stale actions replayed from the event log on page load
-    if (Date.now() - lastAction.ts > 8000) return;
 
     const timers: ReturnType<typeof setTimeout>[] = [];
     setCaption(lastAction);
@@ -85,14 +83,15 @@ export default function StageEffects() {
 const CONFETTI_COLORS = ['var(--accent)', 'var(--success)', 'var(--clay-mid)', 'var(--accent-border)', 'var(--ink)'];
 
 function Confetti() {
-  const pieces = Array.from({ length: 36 }, (_, i) => ({
-    left: `${(i / 36) * 100 + (Math.random() * 3 - 1.5)}%`,
-    delay: `${Math.random() * 180}ms`,
-    duration: `${900 + Math.random() * 400}ms`,
-    drift: `${(Math.random() - 0.5) * 120}px`,
-    spin: `${(Math.random() - 0.5) * 720}deg`,
+  const count = 56;
+  const pieces = Array.from({ length: count }, (_, i) => ({
+    left: `${(i / count) * 100 + (Math.random() * 3 - 1.5)}%`,
+    delay: `${Math.random() * 300}ms`,
+    duration: `${1100 + Math.random() * 500}ms`,
+    drift: `${(Math.random() - 0.5) * 160}px`,
+    spin: `${(Math.random() - 0.5) * 900}deg`,
     color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
-    size: 6 + Math.round(Math.random() * 6),
+    size: 9 + Math.round(Math.random() * 7),
   }));
   return (
     <div style={styles.confettiLayer}>

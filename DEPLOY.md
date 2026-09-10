@@ -48,7 +48,15 @@ wrangler login
 npm run worker:deploy
 ```
 
+   This deploy also creates the `RoomDO` Durable Object (declared under `durable_objects` and `migrations` in `wrangler.jsonc`). It is SQLite-backed, so it works on the free plan. Rooms are the bridge between agents and the host screen: without this deploy, tool calls have nowhere to land and nothing moves on screen.
+
 3. Note the deployed Worker URL (e.g., `https://objectle-worker.yourusername.workers.dev`)
+
+4. Smoke-test a room:
+```bash
+curl https://objectle-worker.yourusername.workers.dev/api/room/TEST
+curl "https://objectle-worker.yourusername.workers.dev/api/room/TEST/tools/rotate_object?axis=y&degrees=30"
+```
 
 ## Step 3: Set Up Cloudflare Pages
 
@@ -166,6 +174,9 @@ A: Check D1 database is set up and `database_id` in `wrangler.jsonc` is correct.
 
 **Q: Frontend shows "Failed to load daily challenge"**
 A: Verify `WORKER_API` environment variable is set correctly in Pages settings and points to your deployed Worker.
+
+**Q: An agent is playing but nothing moves on the host screen**
+A: Check that the host screen and the agent use the same room code (the code in the page URL `?room=` must match the code in the tool URLs / MCP URL). Then confirm the Worker was deployed after the Durable Object was added: `curl <worker>/api/room/<CODE>` should return the room manual, not 404. The Tool Timeline header shows "Offline (local mode)" when the page cannot reach the Worker.
 
 **Q: D1 commands fail**
 A: Ensure you are authenticated (`wrangler login`) and have permissions for the account.

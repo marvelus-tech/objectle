@@ -15,7 +15,7 @@ interface ObjectViewerProps {
  */
 const DAMP_ROTATION = 6;   // higher = snappier; ~0.35s to settle
 const DAMP_CAMERA = 4;
-const DAMP_MATERIAL = 5;
+const DAMP_MATERIAL = 2.5; // slower on purpose: the reveal should read as lights coming up (~1s)
 const WIN_SPIN_MS = 1400;
 
 const reducedMotion = () =>
