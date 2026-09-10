@@ -3,8 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Hand this to your agent — Objectle</title>
-  <meta name="description" content="Copy a prompt for your agent, then watch them solve today's 3D object.">
+  <title>Hand this to your agent | Objectle</title>
+  <meta name="description" content="Connect your AI agent to an Objectle theater room, share a concise play prompt, and watch its observations, decisions, and guesses unfold live.">
+  <link rel="canonical" href="https://marvelus-tech.github.io/objectle/pass/">
   
   <!-- Google Fonts: Newsreader (display) + Inter (UI) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -293,6 +294,31 @@
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .pass-container {
+        padding: var(--space-6) var(--space-3);
+      }
+
+      .pass-header {
+        margin-bottom: var(--space-6);
+      }
+
+      .pass-main {
+        padding: var(--space-6);
+      }
+
+      .pass-title {
+        font-size: 1.7rem;
+      }
+
+      .pass-copy-btn,
+      .pass-apps a,
+      .pass-follow-link {
+        width: 100%;
+        text-align: center;
       }
     }
   </style>

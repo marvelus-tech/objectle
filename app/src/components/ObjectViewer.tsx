@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { useEffect, useRef } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Environment, ContactShadows, PerspectiveCamera, Lightformer } from '@react-three/drei';
 import { useGameStore } from '../lib/store';
 import * as THREE from 'three';
@@ -20,14 +20,43 @@ function SceneObject({ visualProfile }: { visualProfile: string }) {
   const rotationZ = useGameStore(state => state.rotationZ);
   
   const meshRef = useRef<THREE.Mesh>(null);
+  const targetRotation = useRef(new THREE.Euler());
+  const reduceMotion =
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   
   useEffect(() => {
-    if (meshRef.current) {
-      meshRef.current.rotation.x = THREE.MathUtils.degToRad(rotationX);
-      meshRef.current.rotation.y = THREE.MathUtils.degToRad(rotationY);
-      meshRef.current.rotation.z = THREE.MathUtils.degToRad(rotationZ);
+    targetRotation.current.set(
+      THREE.MathUtils.degToRad(rotationX),
+      THREE.MathUtils.degToRad(rotationY),
+      THREE.MathUtils.degToRad(rotationZ),
+    );
+    if (reduceMotion && meshRef.current) {
+      meshRef.current.rotation.copy(targetRotation.current);
     }
-  }, [rotationX, rotationY, rotationZ]);
+  }, [reduceMotion, rotationX, rotationY, rotationZ]);
+
+  useFrame((_, delta) => {
+    if (!meshRef.current || reduceMotion) return;
+    meshRef.current.rotation.x = THREE.MathUtils.damp(
+      meshRef.current.rotation.x,
+      targetRotation.current.x,
+      8,
+      delta,
+    );
+    meshRef.current.rotation.y = THREE.MathUtils.damp(
+      meshRef.current.rotation.y,
+      targetRotation.current.y,
+      8,
+      delta,
+    );
+    meshRef.current.rotation.z = THREE.MathUtils.damp(
+      meshRef.current.rotation.z,
+      targetRotation.current.z,
+      8,
+      delta,
+    );
+  });
   
   // Procedural geometry uses opaque profiles so answer names never enter UI state.
   // In production, this would load actual GLTF models from R2
@@ -174,6 +203,11 @@ export default function ObjectViewer({ visualProfile }: ObjectViewerProps) {
         <PerspectiveCamera makeDefault position={[0, 0, cameraDistance]} fov={50} />
         
         <StudioLighting />
+
+        <mesh position={[0, -1.08, 0]} receiveShadow>
+          <cylinderGeometry args={[1.45, 1.62, 0.14, 64]} />
+          <meshStandardMaterial color="#E3DED6" roughness={0.82} />
+        </mesh>
         
         <SceneObject visualProfile={visualProfile} />
         
