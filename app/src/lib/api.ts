@@ -19,6 +19,15 @@ export const API_BASE = getAPIBase();
 /** Absolute API origin, e.g. "https://objectle-worker-demo.marvelus.workers.dev/api" (agents need a full URL). */
 export const API_BASE_ABSOLUTE = new URL(API_BASE, window.location.href).toString().replace(/\/$/, '');
 
+function legacyVisualProfile(objectKey: string) {
+  const profiles: Array<[string, string]> = [
+    ['chair', 'p01'], ['bicycle', 'p02'], ['mug', 'p03'], ['lamp', 'p04'],
+    ['hammer', 'p05'], ['table', 'p06'], ['phone', 'p07'], ['bowl', 'p08'],
+    ['car', 'p09'], ['spoon', 'p10'], ['bench', 'p11'], ['key', 'p12'],
+  ];
+  return profiles.find(([name]) => objectKey.toLowerCase().includes(name))?.[1] ?? 'p00';
+}
+
 // Track if Worker is available
 let workerAvailable: boolean | null = null;
 
@@ -27,6 +36,7 @@ export const isWorkerAvailable = () => workerAvailable === true;
 export interface DailyChallengeResponse {
   date: string;
   objectKey: string;
+  visualProfile: string;
   maxGuesses: number;
 }
 
@@ -40,6 +50,7 @@ export interface CheckGuessResponse {
   };
   gameOver: boolean;
   won: boolean;
+  answer?: string;
 }
 
 export interface ScoreResponse {
@@ -77,7 +88,13 @@ export const api = {
         
         if (res.ok) {
           workerAvailable = true;
-          return res.json();
+          const challenge = await res.json() as DailyChallengeResponse;
+          return {
+            ...challenge,
+            objectKey: `challenge-${challenge.date}`,
+            visualProfile:
+              challenge.visualProfile ?? legacyVisualProfile(challenge.objectKey),
+          };
         }
         
         // Worker returned error, fall back
@@ -98,6 +115,7 @@ export const api = {
     return {
       date: local.date,
       objectKey: local.objectKey,
+      visualProfile: local.visualProfile,
       maxGuesses: 6,
     };
   },

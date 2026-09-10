@@ -128,15 +128,16 @@ function roomManual(origin: string, state: RoomState): string {
     `  read_view       ${base}/tools/read_view`,
     `  rotate_object   ${base}/tools/rotate_object?axis=y&degrees=30      (axis x|y|z, degrees +/-15..45)`,
     `  zoom            ${base}/tools/zoom?level=1                        (0-3, one level unlocks per wrong guess)`,
+    `  publish_status  ${base}/tools/publish_status?headline=Looking+at+a+handle`,
     `  submit_guess    ${base}/tools/submit_guess?name=mug`,
     '',
-    `MCP clients: add ${origin}/mcp/${state.code} as a Streamable HTTP server (no auth) to get the same four tools natively.`,
+    `MCP clients: add ${origin}/mcp/${state.code} as a Streamable HTTP server (no auth) to get the same five tools natively.`,
     '',
     'RULES',
     `- You have ${MAX_GUESSES} guesses to name the object. Synonyms are accepted (bike = bicycle, cup = mug).`,
     '- After each guess you get facet feedback: category, material and scale, each marked correct or wrong.',
     '- Wrong guesses reveal more: silhouette -> clay -> colour -> full studio lighting, and unlock closer zoom.',
-    '- Narrate briefly what you are doing between calls so the human can follow your reasoning.',
+    '- Narrate with publish_status (headline + rationale) so the human can follow your reasoning.',
     '',
     'Suggested opening: read_view, then rotate_object around y by 45, read_view again, then make your first guess.',
   ].join('\n');
@@ -145,7 +146,21 @@ function roomManual(origin: string, state: RoomState): string {
 async function handleGetDailyChallenge(env: Env): Promise<Response> {
   const challenge = await getChallenge(env);
   // Only safe metadata, never the answer
-  return json({ date: getTodayUTC(), objectKey: challenge.object_key, maxGuesses: MAX_GUESSES });
+  return json({
+    date: getTodayUTC(),
+    objectKey: challenge.object_key,
+    visualProfile: visualProfileFor(challenge.object_key),
+    maxGuesses: MAX_GUESSES,
+  });
+}
+
+function visualProfileFor(objectKey: string): string {
+  const profiles: Array<[string, string]> = [
+    ['chair', 'p01'], ['bicycle', 'p02'], ['mug', 'p03'], ['lamp', 'p04'],
+    ['hammer', 'p05'], ['table', 'p06'], ['phone', 'p07'], ['bowl', 'p08'],
+    ['car', 'p09'], ['spoon', 'p10'], ['bench', 'p11'], ['key', 'p12'],
+  ];
+  return profiles.find(([name]) => objectKey.toLowerCase().includes(name))?.[1] ?? 'p00';
 }
 
 async function handleCheckGuess(request: Request, env: Env): Promise<Response> {

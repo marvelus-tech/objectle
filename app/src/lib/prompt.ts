@@ -13,7 +13,7 @@ export function agentPromptFor(code: string): string {
     roomManualUrl(code),
     '',
     'Step 2: Play by fetching the tool URLs (plain GET requests). Every fetch is shown instantly on the human\'s screen, so narrate in one short sentence what you are doing between calls.',
-    '  read_view, rotate_object(axis, degrees), zoom(level), submit_guess(name)',
+    '  read_view, rotate_object(axis, degrees), zoom(level), publish_status(headline), submit_guess(name)',
     '  6 guesses. Facet feedback after each guess: category, material, scale.',
     '',
     `If your client supports MCP connectors, add ${roomMcpUrl(code)} (Streamable HTTP, no auth) to get the same tools natively.`,

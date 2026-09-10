@@ -9,6 +9,7 @@ import AgentPanel from './components/AgentPanel';
 import ToolLog from './components/ToolLog';
 import PassCard from './components/PassCard';
 import ProgressionChrome from './components/ProgressionChrome';
+import HypothesisBoard from './components/HypothesisBoard';
 import StageEffects from './components/StageEffects';
 import { useGameStore } from './lib/store';
 import { api, isWorkerAvailable } from './lib/api';
@@ -18,32 +19,33 @@ import { resolveRoomCode, startRoomSync } from './lib/room';
 export default function App() {
   const initGame = useGameStore(state => state.initGame);
   const objectKey = useGameStore(state => state.objectKey);
+  const visualProfile = useGameStore(state => state.visualProfile);
   const loading = useGameStore(state => state.loading);
   const error = useGameStore(state => state.error);
   const setLoading = useGameStore(state => state.setLoading);
   const setError = useGameStore(state => state.setError);
   const setRoom = useGameStore(state => state.setRoom);
-  
-  // Load daily challenge, register WebMCP tools, then join the live room
+  const roomConnected = useGameStore(state => state.roomConnected);
+  const agentLastSeenAt = useGameStore(state => state.agentLastSeenAt);
+
   useEffect(() => {
     let stopSync: (() => void) | undefined;
     loadDailyChallenge().then(() => {
       registerWebMCPTools();
       const code = resolveRoomCode();
-      // Rooms need the Worker; without it we stay in local-only mode
       if (isWorkerAvailable()) stopSync = startRoomSync(code);
       else setRoom(code, false);
     });
     return () => stopSync?.();
   }, []);
-  
+
   const loadDailyChallenge = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const challenge = await api.getDailyChallenge();
-      initGame(challenge.date, challenge.objectKey);
+      initGame(challenge.date, challenge.objectKey, challenge.visualProfile);
     } catch (err) {
       console.error('Failed to load daily challenge:', err);
       setError('Failed to load today\'s challenge. Please refresh the page.');
@@ -51,7 +53,7 @@ export default function App() {
       setLoading(false);
     }
   };
-  
+
   if (loading) {
     return (
       <div style={styles.centered}>
@@ -59,7 +61,7 @@ export default function App() {
       </div>
     );
   }
-  
+
   if (error) {
     return (
       <div style={styles.centered}>
@@ -72,28 +74,38 @@ export default function App() {
       </div>
     );
   }
-  
-  if (!objectKey) {
+
+  if (!objectKey || !visualProfile) {
     return (
       <div style={styles.centered}>
         <div style={styles.loader}>No challenge available</div>
       </div>
     );
   }
-  
+
+  const agentLive = roomConnected && agentLastSeenAt !== null && Date.now() - agentLastSeenAt < 10_000;
+
   return (
-    <div style={styles.app}>
-      <header style={styles.header}>
+    <div className="app-shell" style={styles.app}>
+      <header className="theater-header" style={styles.header}>
+        <span style={styles.roomSignal}>
+          <span
+            style={{
+              ...styles.signalDot,
+              background: agentLive ? 'var(--success)' : roomConnected ? 'var(--accent)' : 'var(--ink-muted)',
+            }}
+          />
+          {agentLive ? 'Agent live' : roomConnected ? 'Live theater' : 'Local mode'}
+        </span>
         <h1 style={styles.title}>Objectle</h1>
-        <p style={styles.subtitle}>Daily 3D Object Guessing Game — Dual-Watch Theater</p>
+        <p style={styles.subtitle}>Daily 3D Object Guessing Game · Dual-Watch Theater</p>
       </header>
-      
-      <main style={styles.main}>
-        {/* Center Stage: Viewer + Progression */}
-        <div style={styles.stageColumn}>
-          <div style={styles.viewerWrapper}>
-            <div style={styles.viewer}>
-              <ObjectViewer objectKey={objectKey} />
+
+      <main className="theater-main" style={styles.main}>
+        <div className="stage-column" style={styles.stageColumn}>
+          <div className="viewer-frame" style={styles.viewerWrapper}>
+            <div className="viewer-stage" style={styles.viewer}>
+              <ObjectViewer visualProfile={visualProfile} />
               <StageEffects />
             </div>
             <div style={styles.controls}>
@@ -101,15 +113,15 @@ export default function App() {
             </div>
           </div>
           <ProgressionChrome />
+          <HypothesisBoard />
         </div>
-        
-        {/* Side Rail: Tool Timeline + Game */}
-        <div style={styles.sideColumn}>
-          <div style={styles.toolLogSection}>
+
+        <div className="side-rail" style={styles.sideColumn}>
+          <div className="tool-log-sticky" style={styles.toolLogSection}>
             <ToolLog />
           </div>
-          
-          <div style={styles.gameSection}>
+
+          <div className="game-section" style={styles.gameSection}>
             <PassCard />
             <GameOver />
             <GuessInput />
@@ -117,16 +129,16 @@ export default function App() {
           </div>
         </div>
       </main>
-      
+
       <ShareModal />
       <AgentPanel />
-      
+
       <footer style={styles.footer}>
         <p style={styles.footerText}>
-          Built with React Three Fiber & Cloudflare Workers | 
-          <a 
-            href="https://github.com/marvelus-tech/objectle" 
-            target="_blank" 
+          Built with React Three Fiber & Cloudflare Workers |
+          <a
+            href="https://github.com/marvelus-tech/objectle"
+            target="_blank"
             rel="noopener noreferrer"
             style={styles.link}
           >
@@ -146,11 +158,31 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'var(--field)',
   },
   header: {
+    position: 'relative',
     padding: 'var(--space-6) var(--space-4)',
     textAlign: 'center' as const,
     background: 'var(--surface)',
     borderBottom: `1px solid var(--border-subtle)`,
     boxShadow: 'var(--shadow-sm)',
+  },
+  roomSignal: {
+    position: 'absolute',
+    top: 'var(--space-4)',
+    left: 'var(--space-5)',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 'var(--space-2)',
+    color: 'var(--ink-secondary)',
+    fontSize: '10px',
+    fontWeight: 600,
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase',
+  },
+  signalDot: {
+    width: '7px',
+    height: '7px',
+    borderRadius: '50%',
+    boxShadow: '0 0 0 4px var(--accent-subtle)',
   },
   title: {
     fontSize: 'var(--text-3xl)',

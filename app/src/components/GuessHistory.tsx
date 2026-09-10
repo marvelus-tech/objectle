@@ -76,7 +76,9 @@ function FacetBadge({ label, value, match, delayMs }: { label: string; value: st
       borderColor: match ? 'var(--success)' : 'var(--error)',
       color: match ? 'var(--success)' : 'var(--error)',
       animation,
-    }}>
+    }}
+      className={match ? 'facet-chip facet-chip--match' : 'facet-chip'}
+    >
       <div style={styles.facetLabel}>{label}</div>
       <div style={styles.facetValue}>{value}</div>
     </div>

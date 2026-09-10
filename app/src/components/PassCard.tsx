@@ -81,7 +81,7 @@ export default function PassCard() {
         <div style={styles.howTo}>
           <h4 style={styles.howToTitle}>How agents play</h4>
           <ul style={styles.list}>
-            <li><strong>4 tools:</strong> read_view, rotate_object, zoom, submit_guess</li>
+            <li><strong>5 tools:</strong> read_view, rotate_object, zoom, publish_status, submit_guess</li>
             <li><strong>Any agent that can fetch a URL</strong> can play: the tools are plain links</li>
             <li><strong>MCP clients</strong> can add the room as a connector for native tools</li>
             <li><strong>6 guesses</strong>, facet feedback on category, material and scale</li>

@@ -1,11 +1,11 @@
 /**
- * The four Objectle tools, described once and reused by:
+ * The Objectle tools, described once and reused by:
  *  - the browser WebMCP registration (app/src/lib/webmcp.ts)
  *  - the Worker's MCP endpoint (worker/mcp-http.ts)
  *  - the stdio MCP server (worker/mcp-server.ts)
  */
 
-export type ToolName = 'read_view' | 'rotate_object' | 'zoom' | 'submit_guess';
+export type ToolName = 'read_view' | 'rotate_object' | 'zoom' | 'submit_guess' | 'publish_status';
 
 export interface ToolDefinition {
   name: ToolName;
@@ -59,6 +59,34 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
         },
       },
       required: ['level'],
+    },
+  },
+  {
+    name: 'publish_status',
+    description:
+      'Share a concise public working-theory update for the human audience. Use this instead of private chain-of-thought. Publish before a guess and after interpreting facet feedback.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        headline: { type: 'string', maxLength: 80, description: 'Plain-language summary of the current decision' },
+        rationale: { type: 'string', maxLength: 200, description: 'Brief evidence-based explanation for the audience' },
+        candidates: {
+          type: 'array',
+          maxItems: 3,
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', maxLength: 40 },
+              confidence: { type: 'number', minimum: 0, maximum: 100 },
+              evidence: { type: 'string', maxLength: 100 },
+            },
+            required: ['name'],
+          },
+        },
+        next: { type: 'string', maxLength: 100, description: 'The next intended action' },
+        confidence: { type: 'string', enum: ['low', 'medium', 'high'] },
+      },
+      required: ['headline'],
     },
   },
   {
@@ -122,6 +150,21 @@ export function normalizeToolArgs(tool: ToolName, raw: Record<string, unknown>):
       const name = String(raw.name ?? raw.guess ?? '').trim();
       if (!name) throw new Error('submit_guess needs a name');
       return { name: name.slice(0, 60) };
+    }
+    case 'publish_status': {
+      const headline = String(raw.headline ?? '').replace(/\s+/g, ' ').trim().slice(0, 80);
+      if (!headline) throw new Error('publish_status needs a headline');
+      const args: ToolArgs = { headline };
+      const rationale = String(raw.rationale ?? '').replace(/\s+/g, ' ').trim().slice(0, 200);
+      if (rationale) args.rationale = rationale;
+      const next = String(raw.next ?? '').replace(/\s+/g, ' ').trim().slice(0, 100);
+      if (next) args.next = next;
+      const confidence = String(raw.confidence ?? '').toLowerCase();
+      if (['low', 'medium', 'high'].includes(confidence)) args.confidence = confidence;
+      if (raw.candidates !== undefined && raw.candidates !== null) {
+        args.candidates = typeof raw.candidates === 'string' ? raw.candidates : JSON.stringify(raw.candidates);
+      }
+      return args;
     }
   }
 }

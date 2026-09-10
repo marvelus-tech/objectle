@@ -49,7 +49,7 @@
       "Step 1: Fetch this URL and read it. It is your room manual with the exact tool URLs:\n" +
       manualUrl(code) + "\n\n" +
       "Step 2: Play by fetching the tool URLs (plain GET requests). Every fetch is shown instantly on the human's screen, so narrate in one short sentence what you are doing between calls.\n" +
-      "  read_view, rotate_object(axis, degrees), zoom(level), submit_guess(name)\n" +
+      "  read_view, rotate_object(axis, degrees), zoom(level), publish_status(headline), submit_guess(name)\n" +
       "  6 guesses. Facet feedback after each guess: category, material, scale.\n\n" +
       "If your client supports MCP connectors, add " + mcpUrl(code) + " (Streamable HTTP, no auth) to get the same tools natively.\n\n" +
       "Start now with read_view."

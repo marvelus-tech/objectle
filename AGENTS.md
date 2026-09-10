@@ -37,7 +37,7 @@ The human sees every call: the object turns, the camera moves, and a caption suc
 
 ## WebMCP Tools
 
-The game exposes 4 MCP tools for agent interaction:
+The game exposes 5 MCP tools for agent interaction:
 
 ### 1. `read_view()`
 
@@ -118,7 +118,21 @@ Zoom set to level 2/3. Camera distance adjusted.
 Zoom level 2 is locked. Maximum available: 1. Make more guesses to unlock higher zoom levels.
 ```
 
-### 4. `submit_guess(name)`
+### 4. `publish_status(headline, rationale, candidates, next, confidence)`
+
+Publishes a short, audience-facing update to the host theater. Use it before
+each guess and after interpreting facet feedback.
+
+This tool is for concise public explanation, not private chain-of-thought.
+
+**Parameters:**
+- `headline` (string, required): Current decision in 80 characters or fewer
+- `rationale` (string): Evidence summary in 200 characters or fewer
+- `candidates` (array): Up to 3 candidates with optional confidence and evidence
+- `next` (string): Intended next action
+- `confidence` (string): `low`, `medium`, or `high`
+
+### 5. `submit_guess(name)`
 
 Submits your guess for what the object is.
 
@@ -268,7 +282,7 @@ Leave out `ROOM_CODE` and call `join_room("ABCD")` if the code changes per sessi
 
 After configuring, verify the MCP server is available:
 ```
-List available tools -> Should show: join_room (stdio only), read_view, rotate_object, zoom, submit_guess
+List available tools -> Should show: join_room (stdio only), read_view, rotate_object, zoom, publish_status, submit_guess
 ```
 
 ## Tips for High Scores

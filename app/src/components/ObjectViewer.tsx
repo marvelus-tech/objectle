@@ -2,10 +2,11 @@ import { useEffect, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Environment, ContactShadows, PerspectiveCamera, Lightformer } from '@react-three/drei';
 import { useGameStore } from '../lib/store';
+import StageCaption from './StageCaption';
 import * as THREE from 'three';
 
 interface ObjectViewerProps {
-  objectKey: string;
+  visualProfile: string;
 }
 
 /**
@@ -31,7 +32,7 @@ const TIER_LOOK = [
 
 const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
 
-function SceneObject({ objectKey }: { objectKey: string }) {
+function SceneObject({ visualProfile }: { visualProfile: string }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const materialRef = useRef<THREE.MeshStandardMaterial>(null);
   const targetColor = useRef(new THREE.Color(TIER_LOOK[0].color));
@@ -86,21 +87,20 @@ function SceneObject({ objectKey }: { objectKey: string }) {
     }
   });
 
-  // For MVP: procedural geometry based on objectKey (production: GLTF from R2)
+  // Procedural geometry uses opaque profiles so answer names never enter UI state.
   const getGeometry = () => {
-    const key = objectKey.toLowerCase();
-    if (key.includes('chair')) return <boxGeometry args={[1, 1.5, 1]} />;
-    if (key.includes('table') || key.includes('desk')) return <boxGeometry args={[2, 0.2, 1.5]} />;
-    if (key.includes('lamp')) return <cylinderGeometry args={[0.3, 0.5, 1.5, 16]} />;
-    if (key.includes('bench')) return <boxGeometry args={[2.5, 0.3, 0.8]} />;
-    if (key.includes('mug') || key.includes('cup')) return <cylinderGeometry args={[0.5, 0.6, 1, 32]} />;
-    if (key.includes('bowl')) return <sphereGeometry args={[0.7, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />;
-    if (key.includes('spoon')) return <capsuleGeometry args={[0.15, 1.2, 8, 16]} />;
-    if (key.includes('bicycle') || key.includes('bike')) return <torusGeometry args={[1, 0.3, 16, 100]} />;
-    if (key.includes('car')) return <boxGeometry args={[2, 0.8, 1.2]} />;
-    if (key.includes('hammer')) return <capsuleGeometry args={[0.2, 1, 8, 16]} />;
-    if (key.includes('key')) return <boxGeometry args={[0.15, 1, 0.05]} />;
-    if (key.includes('phone')) return <boxGeometry args={[0.4, 0.8, 0.08]} />;
+    if (visualProfile === 'p01') return <boxGeometry args={[1, 1.5, 1]} />;
+    if (visualProfile === 'p06') return <boxGeometry args={[2, 0.2, 1.5]} />;
+    if (visualProfile === 'p04') return <cylinderGeometry args={[0.3, 0.5, 1.5, 16]} />;
+    if (visualProfile === 'p11') return <boxGeometry args={[2.5, 0.3, 0.8]} />;
+    if (visualProfile === 'p03') return <cylinderGeometry args={[0.5, 0.6, 1, 32]} />;
+    if (visualProfile === 'p08') return <sphereGeometry args={[0.7, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />;
+    if (visualProfile === 'p10') return <capsuleGeometry args={[0.15, 1.2, 8, 16]} />;
+    if (visualProfile === 'p02') return <torusGeometry args={[1, 0.3, 16, 100]} />;
+    if (visualProfile === 'p09') return <boxGeometry args={[2, 0.8, 1.2]} />;
+    if (visualProfile === 'p05') return <capsuleGeometry args={[0.2, 1, 8, 16]} />;
+    if (visualProfile === 'p12') return <boxGeometry args={[0.15, 1, 0.05]} />;
+    if (visualProfile === 'p07') return <boxGeometry args={[0.4, 0.8, 0.08]} />;
     return <boxGeometry args={[1, 1, 1]} />;
   };
 
@@ -200,7 +200,7 @@ function DollyCamera() {
   return <PerspectiveCamera ref={cameraRef} makeDefault position={[0, 0, 5]} fov={50} />;
 }
 
-export default function ObjectViewer({ objectKey }: ObjectViewerProps) {
+export default function ObjectViewer({ visualProfile }: ObjectViewerProps) {
   const zoomLevel = useGameStore(state => state.zoomLevel);
   const revealTier = useGameStore(state => state.revealTier);
 
@@ -217,7 +217,7 @@ export default function ObjectViewer({ objectKey }: ObjectViewerProps) {
       >
         <DollyCamera />
         <StudioLighting />
-        <SceneObject objectKey={objectKey} />
+        <SceneObject visualProfile={visualProfile} />
 
         <ContactShadows
           position={[0, -1, 0]}
@@ -259,6 +259,7 @@ export default function ObjectViewer({ objectKey }: ObjectViewerProps) {
       }}>
         Zoom {zoomLevel + 1}/4 · Reveal {revealTier + 1}/4
       </div>
+      <StageCaption />
     </div>
   );
 }

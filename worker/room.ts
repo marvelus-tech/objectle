@@ -130,7 +130,7 @@ export class RoomDO extends DurableObject<Env> {
     let args: ToolArgs = rawArgs;
 
     if (!isToolName(tool)) {
-      text = `Unknown tool "${tool}". Available: read_view, rotate_object, zoom, submit_guess.`;
+      text = `Unknown tool "${tool}". Available: read_view, rotate_object, zoom, publish_status, submit_guess.`;
       success = false;
     } else {
       try {
@@ -215,6 +215,11 @@ export class RoomDO extends DurableObject<Env> {
           if (outcome.won) s.revealTier = 3;
         }
         return describeGuess(name, outcome, s.revealTier);
+      }
+
+      case 'publish_status': {
+        const headline = args.headline as string;
+        return `Public status shared: ${headline}`;
       }
     }
   }

@@ -32,7 +32,7 @@ export default function AgentPanel() {
   const tool = webmcpTools.find(t => t.name === selectedTool);
   
   return (
-    <div style={styles.container}>
+    <div className="agent-panel-shell" style={styles.container}>
       <button
         onClick={() => setShowPanel(!showPanel)}
         style={styles.toggleButton}
@@ -42,7 +42,7 @@ export default function AgentPanel() {
       </button>
       
       {showPanel && (
-        <div style={styles.panel}>
+        <div className="agent-panel-drawer" style={styles.panel}>
           <h3 style={styles.heading}>WebMCP Tools</h3>
           <p style={styles.subtitle}>
             Agents: These tools are available via the page modelContext API

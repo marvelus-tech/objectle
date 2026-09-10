@@ -15,7 +15,7 @@ export interface LiveAction {
   id: string;
   ts: number;
   actor: Actor;
-  tool: 'read_view' | 'rotate_object' | 'zoom' | 'submit_guess';
+  tool: 'read_view' | 'rotate_object' | 'zoom' | 'submit_guess' | 'publish_status';
   args: Record<string, unknown>;
   success: boolean;
   /** Short human caption, e.g. "Agent turned the object 30° right" */
@@ -42,6 +42,8 @@ interface GameState {
   playerId: string;
   date: string | null;
   objectKey: string | null;
+  visualProfile: string | null;
+  answer: string | null;
   guesses: Guess[];
   gameOver: boolean;
   won: boolean;
@@ -65,9 +67,9 @@ interface GameState {
   showShareModal: boolean;
 
   // Actions
-  initGame: (date: string, objectKey: string) => void;
+  initGame: (date: string, objectKey: string, visualProfile?: string) => void;
   addGuess: (guess: Guess) => void;
-  setGameOver: (won: boolean) => void;
+  setGameOver: (won: boolean, answer?: string) => void;
   rotate: (axis: 'x' | 'y' | 'z', degrees: number) => void;
   zoom: (level: number) => void;
   setRoom: (code: string | null, connected: boolean) => void;
@@ -92,6 +94,8 @@ export const useGameStore = create<GameState>((set) => ({
   playerId: getOrCreatePlayerId(),
   date: null,
   objectKey: null,
+  visualProfile: null,
+  answer: null,
   guesses: [],
   gameOver: false,
   won: false,
@@ -106,9 +110,11 @@ export const useGameStore = create<GameState>((set) => ({
   error: null,
   showShareModal: false,
 
-  initGame: (date, objectKey) => set({
+  initGame: (date, objectKey, visualProfile) => set({
     date,
     objectKey,
+    visualProfile: visualProfile ?? null,
+    answer: null,
     guesses: [],
     gameOver: false,
     won: false,
@@ -126,7 +132,7 @@ export const useGameStore = create<GameState>((set) => ({
     };
   }),
 
-  setGameOver: (won) => set({ gameOver: true, won }),
+  setGameOver: (won, answer) => set({ gameOver: true, won, answer: answer ?? null }),
 
   rotate: (axis, degrees) => set((state) => {
     const key = `rotation${axis.toUpperCase()}` as 'rotationX' | 'rotationY' | 'rotationZ';

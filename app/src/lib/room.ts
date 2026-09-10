@@ -10,6 +10,11 @@
 
 import { API_BASE, API_BASE_ABSOLUTE } from './api';
 import { useGameStore, type Actor, type Guess, type LiveAction, type RoomSnapshot } from './store';
+import {
+  sanitizePublishedStatus,
+  useTheaterStore,
+  type TheaterSource,
+} from './theater';
 
 export interface RoomEvent {
   seq: number;
@@ -95,14 +100,55 @@ export async function callRoomTool(
 function ingest(state: RoomSnapshot, events: RoomEvent[], replay = false): void {
   const store = useGameStore.getState();
   const fresh = events.filter(e => e.seq > lastSeq).sort((a, b) => a.seq - b.seq);
+  store.applySnapshot(state);
   if (fresh.length === 0) return;
 
   lastSeq = fresh[fresh.length - 1].seq;
-  store.applySnapshot(state);
 
   for (const event of fresh) listeners.forEach(l => l(event));
+  ingestTheater(fresh);
   // Only the newest event drives the stage caption/effects
   if (!replay) store.setLastAction(toLiveAction(fresh[fresh.length - 1], state.guesses));
+}
+
+function ingestTheater(events: RoomEvent[]): void {
+  const theater = useTheaterStore.getState();
+  for (const event of events) {
+    const source: TheaterSource = event.actor === 'agent' ? 'agent' : 'human';
+    if (event.tool === 'publish_status') {
+      try {
+        const status = sanitizePublishedStatus(event.args);
+        theater.ingestEvent({
+          id: `room-${event.seq}`,
+          kind: 'status',
+          timestamp: event.ts,
+          source,
+          ...status,
+        });
+      } catch {
+        theater.ingestEvent({
+          id: `room-${event.seq}`,
+          kind: 'status',
+          timestamp: event.ts,
+          source,
+          headline: String(event.args.headline ?? 'Working theory'),
+        });
+      }
+      continue;
+    }
+
+    theater.ingestEvent({
+      id: `room-${event.seq}`,
+      kind: 'tool',
+      timestamp: event.ts,
+      source,
+      tool: event.tool,
+      phase: 'completed',
+      args: event.args,
+      result: event.result,
+      success: event.success,
+    });
+  }
 }
 
 export function toLiveAction(event: RoomEvent, guesses: Guess[]): LiveAction {
@@ -134,6 +180,9 @@ export function toLiveAction(event: RoomEvent, guesses: Guess[]): LiveAction {
       else caption = `${who} guessed "${name}"`;
       break;
     }
+    case 'publish_status':
+      caption = `${who} shared: ${String(event.args.headline ?? 'working theory')}`;
+      break;
   }
 
   return {
