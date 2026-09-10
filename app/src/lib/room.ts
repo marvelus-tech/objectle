@@ -182,6 +182,6 @@ function applyRemoteGuess(event: ToolTheaterEvent) {
   });
 
   if (event.detail.correct || event.detail.remaining === 0) {
-    game.setGameOver(event.detail.correct);
+    game.setGameOver(event.detail.correct, event.detail.answer);
   }
 }

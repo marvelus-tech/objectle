@@ -11,6 +11,7 @@ import {
   TheaterSource,
   useTheaterStore,
 } from './theater';
+import { describeCurrentView } from './view-copy';
 
 export interface WebMCPTool {
   name: string;
@@ -88,7 +89,10 @@ export const webmcpTools: WebMCPTool[] = [
         .getState()
         .startTool('zoom', { ...args }, source);
       const store = useGameStore.getState();
-      const maxZoom = Math.min(store.revealTier + 1, 3);
+      const maxZoom = Math.min(
+        store.guesses.filter(guess => !guess.correct).length,
+        3,
+      );
       
       if (args.level > maxZoom) {
         const result = `Zoom level ${args.level} is locked. Maximum available: ${maxZoom}. Make more guesses to unlock higher zoom levels.`;
@@ -118,26 +122,15 @@ export const webmcpTools: WebMCPTool[] = [
     handler: async (_args, source = 'agent') => {
       const eventId = useTheaterStore.getState().startTool('read_view', {}, source);
       const store = useGameStore.getState();
-      
-      const viewDescriptions = [
-        {
-          detailed: 'You see a pure black silhouette of an object. The shape is somewhat visible but all surface details are hidden. The object is positioned on a light-colored floor with minimal lighting.',
-        },
-        {
-          detailed: 'The object has a dark gray, clay-like appearance. Basic forms and volumes are visible but fine details remain obscured. Studio lighting is dim. You can make out the general structure.',
-        },
-        {
-          detailed: 'The object now has a light beige ceramic appearance. Surface details, edges, and proportions are clearly visible. The lighting is brighter with soft shadows.',
-        },
-        {
-          detailed: 'The object is fully revealed in a professional studio lighting setup. All material details, textures, and subtle features are visible. Soft key lights, fill lights, and contact shadows create a polished presentation.',
-        },
-      ];
-      
-      const desc = viewDescriptions[store.revealTier];
-      const rotation = `The object is currently rotated X=${store.rotationX}°, Y=${store.rotationY}°, Z=${store.rotationZ}°.`;
-      const zoom = `Zoom level: ${store.zoomLevel}/3.`;
-      const result = `${desc.detailed}\n\n${rotation}\n${zoom}\n\nGuesses made: ${store.guesses.length}/6`;
+      const result = describeCurrentView({
+        visualProfile: store.visualProfile,
+        revealTier: store.revealTier,
+        rotationX: store.rotationX,
+        rotationY: store.rotationY,
+        rotationZ: store.rotationZ,
+        zoomLevel: store.zoomLevel,
+        guessesMade: store.guesses.length,
+      });
       
       useTheaterStore.getState().completeTool(eventId, result, true);
       
@@ -241,7 +234,7 @@ export const webmcpTools: WebMCPTool[] = [
         });
         
         if (result.gameOver) {
-          store.setGameOver(result.won);
+          store.setGameOver(result.won, result.answer);
         }
         
         const facetFeedback = `
@@ -273,6 +266,7 @@ Scale: ${result.facets.scale.value} ${result.facets.scale.match ? '✓' : '✗'}
           guessNumber: result.guessNumber,
           correct: result.correct,
           remaining: Math.max(0, 6 - result.guessNumber),
+          answer: result.answer,
           facets: result.facets,
         };
         useTheaterStore.getState().completeTool(eventId, message, true, detail);

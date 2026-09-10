@@ -18,6 +18,7 @@ import { initializeTheaterRoom, useRoomStore } from './lib/room';
 export default function App() {
   const initGame = useGameStore(state => state.initGame);
   const objectKey = useGameStore(state => state.objectKey);
+  const visualProfile = useGameStore(state => state.visualProfile);
   const loading = useGameStore(state => state.loading);
   const error = useGameStore(state => state.error);
   const setLoading = useGameStore(state => state.setLoading);
@@ -40,7 +41,7 @@ export default function App() {
     
     try {
       const challenge = await api.getDailyChallenge();
-      initGame(challenge.date, challenge.objectKey);
+      initGame(challenge.date, challenge.objectKey, challenge.visualProfile);
     } catch (err) {
       console.error('Failed to load daily challenge:', err);
       setError('Failed to load today\'s challenge. Please refresh the page.');
@@ -70,7 +71,7 @@ export default function App() {
     );
   }
   
-  if (!objectKey) {
+  if (!objectKey || !visualProfile) {
     return (
       <div style={styles.centered}>
         <div style={styles.loader}>No challenge available</div>
@@ -90,7 +91,7 @@ export default function App() {
         <div style={styles.stageColumn}>
           <div style={styles.viewerWrapper}>
             <div style={styles.viewer}>
-              <ObjectViewer objectKey={objectKey} />
+              <ObjectViewer visualProfile={visualProfile} />
             </div>
             <div style={styles.controls}>
               <ViewerControls />

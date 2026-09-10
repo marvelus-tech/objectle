@@ -15,7 +15,7 @@ export default function ViewerControls() {
   
   // Gating: early rotation is limited, zoom unlocks progressively
   const canRotate = true; // Always allow some rotation
-  const maxZoom = Math.min(revealTier + 1, 3);
+  const maxZoom = Math.min(guesses.filter(guess => !guess.correct).length, 3);
   const rotationStep = revealTier >= 2 ? 30 : 15; // Larger steps when more revealed
 
   const handleRotate = (axis: 'x' | 'y', degrees: number) => {

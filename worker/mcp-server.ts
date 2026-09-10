@@ -29,6 +29,7 @@ interface GuessResult {
   };
   gameOver: boolean;
   won: boolean;
+  answer?: string;
 }
 
 interface PublishedStatus {
@@ -439,6 +440,7 @@ Scale: ${result.facets.scale.value} ${result.facets.scale.match ? '✓' : '✗'}
               guessNumber: result.guessNumber,
               correct: result.correct,
               remaining: Math.max(0, 6 - result.guessNumber),
+              answer: result.answer,
               facets: result.facets,
             },
           );

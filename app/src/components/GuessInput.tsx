@@ -39,7 +39,7 @@ export default function GuessInput() {
       });
       
       if (result.gameOver) {
-        setGameOver(result.won);
+        setGameOver(result.won, result.answer);
       }
 
       useTheaterStore.getState().completeTool(
@@ -53,6 +53,7 @@ export default function GuessInput() {
           guessNumber: result.guessNumber,
           correct: result.correct,
           remaining: Math.max(0, 6 - result.guessNumber),
+          answer: result.answer,
           facets: result.facets,
         },
       );

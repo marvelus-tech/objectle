@@ -9,6 +9,7 @@
 export interface Challenge {
   date: string;
   objectKey: string;
+  visualProfile: string;
   objectName: string;
   category: string;
   material: string;
@@ -22,18 +23,18 @@ export interface Synonym {
 
 // Daily challenges catalog
 const challenges: Challenge[] = [
-  { date: '2026-09-06', objectKey: 'daily/obj_chair_001', objectName: 'chair', category: 'furniture', material: 'wood', scale: 'medium' },
-  { date: '2026-09-07', objectKey: 'daily/obj_bicycle_001', objectName: 'bicycle', category: 'vehicle', material: 'metal', scale: 'large' },
-  { date: '2026-09-08', objectKey: 'daily/obj_mug_001', objectName: 'mug', category: 'kitchenware', material: 'ceramic', scale: 'small' },
-  { date: '2026-09-09', objectKey: 'daily/obj_lamp_001', objectName: 'lamp', category: 'furniture', material: 'metal', scale: 'medium' },
-  { date: '2026-09-10', objectKey: 'daily/obj_hammer_001', objectName: 'hammer', category: 'tool', material: 'metal', scale: 'small' },
-  { date: '2026-09-11', objectKey: 'daily/obj_table_001', objectName: 'table', category: 'furniture', material: 'wood', scale: 'large' },
-  { date: '2026-09-12', objectKey: 'daily/obj_phone_001', objectName: 'phone', category: 'electronics', material: 'metal', scale: 'small' },
-  { date: '2026-09-13', objectKey: 'daily/obj_bowl_001', objectName: 'bowl', category: 'kitchenware', material: 'ceramic', scale: 'small' },
-  { date: '2026-09-14', objectKey: 'daily/obj_car_001', objectName: 'car', category: 'vehicle', material: 'metal', scale: 'large' },
-  { date: '2026-09-15', objectKey: 'daily/obj_spoon_001', objectName: 'spoon', category: 'kitchenware', material: 'metal', scale: 'small' },
-  { date: '2026-09-16', objectKey: 'daily/obj_bench_001', objectName: 'bench', category: 'furniture', material: 'wood', scale: 'large' },
-  { date: '2026-09-17', objectKey: 'daily/obj_key_001', objectName: 'key', category: 'tool', material: 'metal', scale: 'small' },
+  { date: '2026-09-06', objectKey: 'daily/obj_chair_001', visualProfile: 'p01', objectName: 'chair', category: 'furniture', material: 'wood', scale: 'medium' },
+  { date: '2026-09-07', objectKey: 'daily/obj_bicycle_001', visualProfile: 'p02', objectName: 'bicycle', category: 'vehicle', material: 'metal', scale: 'large' },
+  { date: '2026-09-08', objectKey: 'daily/obj_mug_001', visualProfile: 'p03', objectName: 'mug', category: 'kitchenware', material: 'ceramic', scale: 'small' },
+  { date: '2026-09-09', objectKey: 'daily/obj_lamp_001', visualProfile: 'p04', objectName: 'lamp', category: 'furniture', material: 'metal', scale: 'medium' },
+  { date: '2026-09-10', objectKey: 'daily/obj_hammer_001', visualProfile: 'p05', objectName: 'hammer', category: 'tool', material: 'metal', scale: 'small' },
+  { date: '2026-09-11', objectKey: 'daily/obj_table_001', visualProfile: 'p06', objectName: 'table', category: 'furniture', material: 'wood', scale: 'large' },
+  { date: '2026-09-12', objectKey: 'daily/obj_phone_001', visualProfile: 'p07', objectName: 'phone', category: 'electronics', material: 'metal', scale: 'small' },
+  { date: '2026-09-13', objectKey: 'daily/obj_bowl_001', visualProfile: 'p08', objectName: 'bowl', category: 'kitchenware', material: 'ceramic', scale: 'small' },
+  { date: '2026-09-14', objectKey: 'daily/obj_car_001', visualProfile: 'p09', objectName: 'car', category: 'vehicle', material: 'metal', scale: 'large' },
+  { date: '2026-09-15', objectKey: 'daily/obj_spoon_001', visualProfile: 'p10', objectName: 'spoon', category: 'kitchenware', material: 'metal', scale: 'small' },
+  { date: '2026-09-16', objectKey: 'daily/obj_bench_001', visualProfile: 'p11', objectName: 'bench', category: 'furniture', material: 'wood', scale: 'large' },
+  { date: '2026-09-17', objectKey: 'daily/obj_key_001', visualProfile: 'p12', objectName: 'key', category: 'tool', material: 'metal', scale: 'small' },
 ];
 
 // Synonym mappings
@@ -77,7 +78,7 @@ export function getChallengeByDate(date: string): Challenge | null {
 /**
  * Get today's challenge (client-side fallback)
  */
-export function getTodaysChallenge(): { date: string; objectKey: string } | null {
+export function getTodaysChallenge(): { date: string; objectKey: string; visualProfile: string } | null {
   const today = getTodayUTC();
   const challenge = getChallengeByDate(today);
   
@@ -86,7 +87,8 @@ export function getTodaysChallenge(): { date: string; objectKey: string } | null
   // Return only safe data (no answer)
   return {
     date: challenge.date,
-    objectKey: challenge.objectKey,
+    objectKey: `challenge-${challenge.date}`,
+    visualProfile: challenge.visualProfile,
   };
 }
 
@@ -156,6 +158,7 @@ export function checkGuessLocal(playerId: string, guess: string): {
   };
   gameOver: boolean;
   won: boolean;
+  answer?: string;
 } {
   const today = getTodayUTC();
   const challenge = getChallengeByDate(today);
@@ -210,6 +213,7 @@ export function checkGuessLocal(playerId: string, guess: string): {
     facets,
     gameOver,
     won: isCorrect,
+    answer: gameOver ? challenge.objectName : undefined,
   };
 }
 

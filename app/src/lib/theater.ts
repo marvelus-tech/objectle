@@ -13,6 +13,7 @@ export interface GuessDetail {
   guessNumber: number;
   correct: boolean;
   remaining: number;
+  answer?: string;
   facets: {
     category: FacetDetail;
     material: FacetDetail;

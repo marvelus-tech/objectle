@@ -4,12 +4,11 @@ import { useGameStore } from '../lib/store';
 export default function GameOver() {
   const gameOver = useGameStore(state => state.gameOver);
   const won = useGameStore(state => state.won);
+  const answer = useGameStore(state => state.answer);
   const guesses = useGameStore(state => state.guesses);
   const toggleShareModal = useGameStore(state => state.toggleShareModal);
   
   if (!gameOver) return null;
-  
-  const answer = won ? guesses[guesses.length - 1]?.guessText : 'Unknown';
   
   return (
     <div style={styles.container}>
@@ -19,12 +18,14 @@ export default function GameOver() {
         borderColor: won ? 'var(--success)' : 'var(--error)',
       }}>
         <h2 style={styles.heading}>
-          {won ? '🎉 You Won!' : '😔 Game Over'}
+          {won ? 'Object identified' : 'The reveal'}
         </h2>
         <p style={styles.message}>
           {won
-            ? `You guessed it in ${guesses.length} tries!`
-            : `The answer was: ${answer}`}
+            ? `Solved in ${guesses.length} ${guesses.length === 1 ? 'guess' : 'guesses'}.`
+            : answer
+              ? `The object was ${answer}.`
+              : 'The answer will appear when the host reconnects.'}
         </p>
         <button onClick={toggleShareModal} style={styles.shareButton}>
           Share Result

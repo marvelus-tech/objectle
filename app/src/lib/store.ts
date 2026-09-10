@@ -16,9 +16,11 @@ interface GameState {
   playerId: string;
   date: string | null;
   objectKey: string | null;
+  visualProfile: string | null;
   guesses: Guess[];
   gameOver: boolean;
   won: boolean;
+  answer: string | null;
   
   // 3D viewer state
   rotationX: number;
@@ -34,9 +36,9 @@ interface GameState {
   
   // Actions
   setPlayerId: (id: string) => void;
-  initGame: (date: string, objectKey: string) => void;
+  initGame: (date: string, objectKey: string, visualProfile: string) => void;
   addGuess: (guess: Guess) => void;
-  setGameOver: (won: boolean) => void;
+  setGameOver: (won: boolean, answer?: string) => void;
   rotate: (axis: 'x' | 'y' | 'z', degrees: number) => void;
   zoom: (level: number) => void;
   setRevealTier: (tier: number) => void;
@@ -61,9 +63,11 @@ export const useGameStore = create<GameState>((set) => ({
   playerId: getOrCreatePlayerId(),
   date: null,
   objectKey: null,
+  visualProfile: null,
   guesses: [],
   gameOver: false,
   won: false,
+  answer: null,
   
   rotationX: 15, // Slightly tilted initial pose
   rotationY: 30,
@@ -78,12 +82,14 @@ export const useGameStore = create<GameState>((set) => ({
   // Actions
   setPlayerId: (id) => set({ playerId: id }),
   
-  initGame: (date, objectKey) => set({
+  initGame: (date, objectKey, visualProfile) => set({
     date,
     objectKey,
+    visualProfile,
     guesses: [],
     gameOver: false,
     won: false,
+    answer: null,
     rotationX: 15,
     rotationY: 30,
     rotationZ: 0,
@@ -115,7 +121,11 @@ export const useGameStore = create<GameState>((set) => ({
     };
   }),
   
-  setGameOver: (won) => set({ gameOver: true, won }),
+  setGameOver: (won, answer) => set({
+    gameOver: true,
+    won,
+    answer: answer ?? null,
+  }),
   
   rotate: (axis, degrees) => set((state) => {
     const key = `rotation${axis.toUpperCase()}` as keyof Pick<GameState, 'rotationX' | 'rotationY' | 'rotationZ'>;
@@ -125,8 +135,9 @@ export const useGameStore = create<GameState>((set) => ({
   }),
   
   zoom: (level) => set((state) => {
-    // Zoom is gated by reveal tier / wrong guesses
-    const maxZoom = Math.min(state.revealTier + 1, 3);
+    // Each wrong guess unlocks one Heardle-style zoom level.
+    const wrongGuesses = state.guesses.filter(guess => !guess.correct).length;
+    const maxZoom = Math.min(wrongGuesses, 3);
     return {
       zoomLevel: Math.max(0, Math.min(level, maxZoom)),
     };
@@ -141,9 +152,11 @@ export const useGameStore = create<GameState>((set) => ({
   resetGame: () => set({
     date: null,
     objectKey: null,
+    visualProfile: null,
     guesses: [],
     gameOver: false,
     won: false,
+    answer: null,
     rotationX: 15,
     rotationY: 30,
     rotationZ: 0,

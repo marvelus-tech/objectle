@@ -43,6 +43,7 @@ interface GuessResult {
   };
   gameOver: boolean;
   won: boolean;
+  answer?: string;
 }
 
 // CORS headers
@@ -239,7 +240,8 @@ async function handleGetDailyChallenge(env: Env, clientIP: string): Promise<Resp
   return new Response(
     JSON.stringify({
       date: today,
-      objectKey: challenge.object_key,
+      objectKey: `challenge-${today}`,
+      visualProfile: getVisualProfile(challenge.object_key),
       // Facets hidden until guesses made
       maxGuesses: 6,
     }),
@@ -339,6 +341,7 @@ async function handleCheckGuess(request: Request, env: Env, clientIP: string): P
     facets,
     gameOver,
     won,
+    answer: gameOver ? challenge.object_name : undefined,
   };
 
   return new Response(JSON.stringify(result), {
@@ -406,6 +409,24 @@ async function handleGetLeaderboard(env: Env): Promise<Response> {
 function getTodayUTC(): string {
   const now = new Date();
   return now.toISOString().split('T')[0]; // YYYY-MM-DD
+}
+
+function getVisualProfile(objectKey: string): string {
+  const profiles: Array<[string, string]> = [
+    ['chair', 'p01'],
+    ['bicycle', 'p02'],
+    ['mug', 'p03'],
+    ['lamp', 'p04'],
+    ['hammer', 'p05'],
+    ['table', 'p06'],
+    ['phone', 'p07'],
+    ['bowl', 'p08'],
+    ['car', 'p09'],
+    ['spoon', 'p10'],
+    ['bench', 'p11'],
+    ['key', 'p12'],
+  ];
+  return profiles.find(([name]) => objectKey.toLowerCase().includes(name))?.[1] ?? 'p00';
 }
 
 async function checkAnswerWithSynonyms(
