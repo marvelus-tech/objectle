@@ -8,11 +8,12 @@ import { useGameStore } from '../lib/store';
 export default function ProgressionChrome() {
   const guesses = useGameStore(state => state.guesses);
   const won = useGameStore(state => state.won);
-  const lost = useGameStore(state => state.lost);
+  const gameOver = useGameStore(state => state.gameOver);
+  const revealTier = useGameStore(state => state.revealTier);
   
   const wrongGuesses = guesses.filter(g => !g.correct).length;
   const maxZoom = Math.min(wrongGuesses, 3);
-  const revealTier = Math.min(wrongGuesses + 1, 4);
+  const visibleRevealTier = revealTier + 1;
   
   const zoomLocks = [0, 1, 2, 3];
   
@@ -47,10 +48,10 @@ export default function ProgressionChrome() {
           <div 
             style={{
               ...styles.revealFill,
-              width: `${(revealTier / 4) * 100}%`,
+              width: `${(visibleRevealTier / 4) * 100}%`,
             }}
           />
-          <div style={styles.revealText}>{revealTier}/4</div>
+          <div style={styles.revealText}>{visibleRevealTier}/4</div>
         </div>
         <div style={styles.revealLabels}>
           <span style={styles.revealLabelItem}>Silhouette</span>
@@ -60,7 +61,7 @@ export default function ProgressionChrome() {
         </div>
       </div>
       
-      {!won && !lost && (
+      {!won && !gameOver && (
         <div style={styles.hint}>
           <small style={styles.hintText}>
             Wrong guesses unlock zoom and reveal more detail

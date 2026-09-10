@@ -1,79 +1,167 @@
-import React, { useState, useEffect } from 'react';
-import { subscribeToToolExecutions, ToolExecution } from '../lib/webmcp';
+import React, { useState } from 'react';
+import {
+  describeToolAction,
+  describeToolResult,
+  ToolTheaterEvent,
+  useTheaterStore,
+} from '../lib/theater';
 
 /**
  * Dual Watch UI: Tool observation log
  * Shows real-time tool execution for humans watching agents play
  */
 export default function ToolLog() {
-  const [executions, setExecutions] = useState<ToolExecution[]>([]);
+  const events = useTheaterStore(state => state.events);
   const [expanded, setExpanded] = useState(true);
-  
-  useEffect(() => {
-    const unsubscribe = subscribeToToolExecutions(setExecutions);
-    return unsubscribe;
-  }, []);
-  
+
   return (
     <div style={styles.container}>
-      <div style={styles.header} onClick={() => setExpanded(!expanded)}>
-        <span style={styles.title}>
-          Tool Timeline ({executions.length})
+      <button
+        type="button"
+        style={styles.header}
+        onClick={() => setExpanded(current => !current)}
+        aria-expanded={expanded}
+      >
+        <span>
+          <span style={styles.eyebrow}>Live director’s log</span>
+          <span style={styles.title}>Agent timeline</span>
         </span>
-        <span style={styles.toggle}>{expanded ? '▼' : '▲'}</span>
-      </div>
+        <span style={styles.count}>{events.length}</span>
+      </button>
       
       {expanded && (
-        <div style={styles.logContainer}>
-          {executions.length === 0 ? (
+        <div style={styles.logContainer} aria-live="polite">
+          {events.length === 0 ? (
             <div style={styles.emptyState}>
               <p style={styles.emptyText}>Waiting for an agent…</p>
               <p style={styles.emptySubtext}>
-                Tool calls will appear here as agents play
+                Every observation, action, and result will unfold here.
               </p>
             </div>
           ) : (
-            executions.slice().reverse().map((exec, index) => (
-            <div
-              key={exec.id}
-              style={{
-                ...styles.logEntry,
-                borderLeft: exec.success
-                  ? `3px solid var(--success)`
-                  : `3px solid var(--error)`,
-                animation: 'slideInFade 200ms ease-out',
-                animationDelay: `${index * 40}ms`,
-                animationFillMode: 'both',
-              }}
-            >
-              <div style={styles.logHeader}>
-                <span style={styles.toolName}>{exec.tool}</span>
-                <span style={styles.timestamp}>
-                  {new Date(exec.timestamp).toLocaleTimeString()}
-                </span>
-              </div>
-              
-              {Object.keys(exec.args).length > 0 && (
-                <div style={styles.args}>
-                  <strong>Args:</strong> {JSON.stringify(exec.args)}
-                </div>
-              )}
-              
-              <div style={styles.result}>
-                {exec.result.split('\n').slice(0, 3).map((line, i) => (
-                  <div key={i}>{line}</div>
-                ))}
-                {exec.result.split('\n').length > 3 && (
-                  <div style={styles.more}>
-                    ... ({exec.result.split('\n').length - 3} more lines)
-                  </div>
-                )}
-              </div>
-            </div>
-          ))
+            events
+              .slice()
+              .reverse()
+              .map((event, index) =>
+                event.kind === 'tool' ? (
+                  <ToolEntry key={event.id} event={event} index={index} />
+                ) : (
+                  <article key={event.id} style={styles.statusEntry}>
+                    <span style={styles.entryEyebrow}>Working theory</span>
+                    <strong style={styles.entryHeadline}>{event.headline}</strong>
+                    {event.rationale && <p style={styles.result}>{event.rationale}</p>}
+                    {event.candidates && (
+                      <div style={styles.statusCandidates}>
+                        {event.candidates.map(candidate => (
+                          <span key={candidate.name} style={styles.statusCandidate}>
+                            {candidate.name}
+                            {typeof candidate.confidence === 'number'
+                              ? ` ${candidate.confidence}%`
+                              : ''}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {event.next && (
+                      <p style={styles.next}>
+                        <strong>Next:</strong> {event.next}
+                      </p>
+                    )}
+                  </article>
+                ),
+              )
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function ToolEntry({ event, index }: { event: ToolTheaterEvent; index: number }) {
+  const [showRaw, setShowRaw] = useState(false);
+  const running = event.phase === 'running';
+  const accent = running
+    ? 'var(--accent)'
+    : event.success
+      ? 'var(--success)'
+      : 'var(--error)';
+
+  return (
+    <article
+      style={{
+        ...styles.logEntry,
+        borderLeftColor: accent,
+        animationDelay: `${Math.min(index, 5) * 35}ms`,
+      }}
+    >
+      <div style={styles.logHeader}>
+        <span style={styles.source}>{event.source}</span>
+        <time style={styles.timestamp}>
+          {new Date(event.timestamp).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          })}
+        </time>
+      </div>
+
+      <strong style={styles.entryHeadline}>
+        {running
+          ? describeToolAction(event.tool, event.args)
+          : describeToolResult(event)}
+      </strong>
+
+      <div style={styles.stateLine}>
+        <span style={{ ...styles.stateDot, background: accent }} />
+        {running
+          ? 'In progress'
+          : `${event.success ? 'Complete' : 'Needs attention'} · ${event.durationMs ?? 0}ms`}
+      </div>
+
+      {event.detail && <FacetSummary detail={event.detail} />}
+
+      {event.result && event.tool === 'read_view' && (
+        <p style={styles.observation}>{event.result.split('\n\n')[0]}</p>
+      )}
+
+      {(Object.keys(event.args).length > 0 || event.result) && (
+        <>
+          <button
+            type="button"
+            style={styles.detailButton}
+            onClick={() => setShowRaw(current => !current)}
+          >
+            {showRaw ? 'Hide technical detail' : 'Show technical detail'}
+          </button>
+          {showRaw && (
+            <pre style={styles.rawDetail}>
+              {Object.keys(event.args).length > 0
+                ? `Input\n${JSON.stringify(event.args, null, 2)}\n\n`
+                : ''}
+              {event.result ? `Output\n${event.result}` : ''}
+            </pre>
+          )}
+        </>
+      )}
+    </article>
+  );
+}
+
+function FacetSummary({ detail }: { detail: NonNullable<ToolTheaterEvent['detail']> }) {
+  return (
+    <div style={styles.facets}>
+      {Object.entries(detail.facets).map(([name, facet]) => (
+        <span
+          key={name}
+          style={{
+            ...styles.facet,
+            color: facet.match ? 'var(--success)' : 'var(--error)',
+            background: facet.match ? 'var(--success-bg)' : 'var(--error-bg)',
+          }}
+        >
+          {name} {facet.match ? 'matched' : 'missed'}
+        </span>
+      ))}
     </div>
   );
 }
@@ -87,23 +175,41 @@ const styles: Record<string, React.CSSProperties> = {
     overflow: 'hidden',
   },
   header: {
+    width: '100%',
+    border: 0,
     padding: 'var(--space-4) var(--space-5)',
     background: 'var(--accent)',
     color: 'white',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    cursor: 'pointer',
-    userSelect: 'none' as const,
+    textAlign: 'left',
+  },
+  eyebrow: {
+    display: 'block',
+    marginBottom: '2px',
+    fontSize: '10px',
+    fontWeight: 600,
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase',
+    opacity: 0.78,
   },
   title: {
+    display: 'block',
     fontSize: 'var(--text-base)',
     fontFamily: 'var(--font-display)',
     fontWeight: 600,
     letterSpacing: '0.02em',
   },
-  toggle: {
+  count: {
+    display: 'grid',
+    width: '30px',
+    height: '30px',
+    placeItems: 'center',
+    borderRadius: '50%',
+    background: 'rgba(255, 255, 255, 0.18)',
     fontSize: 'var(--text-sm)',
+    fontWeight: 600,
   },
   logContainer: {
     maxHeight: '400px',
@@ -113,23 +219,31 @@ const styles: Record<string, React.CSSProperties> = {
   logEntry: {
     marginBottom: 'var(--space-3)',
     padding: 'var(--space-4)',
-    background: 'var(--info-bg)',
+    background: 'var(--surface-subtle)',
     borderRadius: 'var(--radius-md)',
+    borderLeft: '3px solid var(--accent)',
     fontSize: 'var(--text-xs)',
     fontFamily: 'var(--font-ui)',
-    opacity: 0,
+    animation: 'slideInFade 240ms ease-out both',
+  },
+  statusEntry: {
+    marginBottom: 'var(--space-3)',
+    padding: 'var(--space-4)',
+    background: 'var(--accent-subtle)',
+    borderRadius: 'var(--radius-md)',
+    borderLeft: '3px solid var(--accent)',
+    animation: 'slideInFade 240ms ease-out both',
   },
   logHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     marginBottom: 'var(--space-2)',
   },
-  toolName: {
+  source: {
     fontWeight: 600,
-    color: 'var(--ink)',
-    fontFamily: 'var(--font-ui)',
+    color: 'var(--ink-tertiary)',
     textTransform: 'uppercase' as const,
-    letterSpacing: '0.03em',
+    letterSpacing: '0.08em',
   },
   timestamp: {
     fontSize: 'var(--text-xs)',
@@ -137,31 +251,101 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--ink-tertiary)',
     fontVariantNumeric: 'tabular-nums',
   },
-  args: {
-    marginBottom: 'var(--space-2)',
-    padding: 'var(--space-2)',
-    background: 'var(--surface)',
+  entryEyebrow: {
+    display: 'block',
+    marginBottom: 'var(--space-1)',
+    color: 'var(--accent)',
+    fontSize: '10px',
+    fontWeight: 600,
+    letterSpacing: '0.1em',
+    textTransform: 'uppercase',
+  },
+  entryHeadline: {
+    display: 'block',
+    color: 'var(--ink)',
+    fontFamily: 'var(--font-display)',
+    fontSize: 'var(--text-base)',
+    fontWeight: 600,
+    lineHeight: 1.25,
+  },
+  stateLine: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    marginTop: 'var(--space-2)',
+    color: 'var(--ink-tertiary)',
+    fontSize: '11px',
+  },
+  stateDot: {
+    width: '7px',
+    height: '7px',
+    borderRadius: '50%',
+  },
+  facets: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 'var(--space-1)',
+    marginTop: 'var(--space-3)',
+  },
+  facet: {
+    padding: '4px 7px',
     borderRadius: 'var(--radius-sm)',
-    fontSize: 'var(--text-xs)',
-    fontFamily: 'var(--font-ui), monospace',
+    fontSize: '10px',
+    fontWeight: 600,
+    textTransform: 'capitalize',
+  },
+  observation: {
+    marginTop: 'var(--space-3)',
     color: 'var(--ink-secondary)',
-    border: `1px solid var(--border-subtle)`,
+    fontSize: 'var(--text-xs)',
+    lineHeight: 1.5,
   },
   result: {
-    padding: 'var(--space-2)',
-    background: 'var(--surface)',
-    borderRadius: 'var(--radius-sm)',
+    marginTop: 'var(--space-2)',
+    color: 'var(--ink-secondary)',
     fontSize: 'var(--text-xs)',
-    fontFamily: 'var(--font-ui)',
-    color: 'var(--ink)',
-    whiteSpace: 'pre-wrap' as const,
-    wordBreak: 'break-word' as const,
-    border: `1px solid var(--border-subtle)`,
+    lineHeight: 1.5,
   },
-  more: {
-    color: 'var(--ink-tertiary)',
-    fontStyle: 'italic' as const,
-    marginTop: 'var(--space-1)',
+  statusCandidates: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 'var(--space-1)',
+    marginTop: 'var(--space-3)',
+  },
+  statusCandidate: {
+    padding: '4px 7px',
+    borderRadius: '999px',
+    background: 'var(--surface)',
+    color: 'var(--accent)',
+    fontSize: '10px',
+    fontWeight: 600,
+    textTransform: 'capitalize',
+  },
+  next: {
+    marginTop: 'var(--space-3)',
+    color: 'var(--ink-secondary)',
+    fontSize: '11px',
+  },
+  detailButton: {
+    marginTop: 'var(--space-3)',
+    padding: 0,
+    background: 'transparent',
+    color: 'var(--accent)',
+    fontSize: '11px',
+    fontWeight: 600,
+  },
+  rawDetail: {
+    maxHeight: '220px',
+    marginTop: 'var(--space-2)',
+    padding: 'var(--space-3)',
+    overflow: 'auto',
+    border: '1px solid var(--border-subtle)',
+    borderRadius: 'var(--radius-sm)',
+    background: 'var(--info-bg)',
+    color: 'var(--ink-secondary)',
+    fontSize: '10px',
+    lineHeight: 1.45,
+    whiteSpace: 'pre-wrap',
   },
   emptyState: {
     textAlign: 'center' as const,

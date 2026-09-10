@@ -1,74 +1,89 @@
-import React, { useEffect, useRef } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { useEffect, useRef } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Environment, ContactShadows, PerspectiveCamera, Lightformer } from '@react-three/drei';
 import { useGameStore } from '../lib/store';
 import * as THREE from 'three';
+import StageCaption from './StageCaption';
 
 interface ObjectViewerProps {
-  objectKey: string;
+  visualProfile: string;
 }
 
 /**
  * The 3D object being displayed
  * Applies silhouette vs color rendering based on revealTier
  */
-function SceneObject({ objectKey }: { objectKey: string }) {
+function SceneObject({ visualProfile }: { visualProfile: string }) {
   const revealTier = useGameStore(state => state.revealTier);
   const rotationX = useGameStore(state => state.rotationX);
   const rotationY = useGameStore(state => state.rotationY);
   const rotationZ = useGameStore(state => state.rotationZ);
   
   const meshRef = useRef<THREE.Mesh>(null);
+  const targetRotation = useRef(new THREE.Euler());
+  const reduceMotion =
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   
   useEffect(() => {
-    if (meshRef.current) {
-      meshRef.current.rotation.x = THREE.MathUtils.degToRad(rotationX);
-      meshRef.current.rotation.y = THREE.MathUtils.degToRad(rotationY);
-      meshRef.current.rotation.z = THREE.MathUtils.degToRad(rotationZ);
+    targetRotation.current.set(
+      THREE.MathUtils.degToRad(rotationX),
+      THREE.MathUtils.degToRad(rotationY),
+      THREE.MathUtils.degToRad(rotationZ),
+    );
+    if (reduceMotion && meshRef.current) {
+      meshRef.current.rotation.copy(targetRotation.current);
     }
-  }, [rotationX, rotationY, rotationZ]);
+  }, [reduceMotion, rotationX, rotationY, rotationZ]);
+
+  useFrame((_, delta) => {
+    if (!meshRef.current || reduceMotion) return;
+    meshRef.current.rotation.x = THREE.MathUtils.damp(
+      meshRef.current.rotation.x,
+      targetRotation.current.x,
+      8,
+      delta,
+    );
+    meshRef.current.rotation.y = THREE.MathUtils.damp(
+      meshRef.current.rotation.y,
+      targetRotation.current.y,
+      8,
+      delta,
+    );
+    meshRef.current.rotation.z = THREE.MathUtils.damp(
+      meshRef.current.rotation.z,
+      targetRotation.current.z,
+      8,
+      delta,
+    );
+  });
   
-  // For MVP: use procedural geometry based on objectKey
+  // Procedural geometry uses opaque profiles so answer names never enter UI state.
   // In production, this would load actual GLTF models from R2
   const getGeometry = () => {
-    const key = objectKey.toLowerCase();
-    
-    // Furniture
-    if (key.includes('chair')) {
+    if (visualProfile === 'p01') {
       return <boxGeometry args={[1, 1.5, 1]} />;
-    } else if (key.includes('table') || key.includes('desk')) {
+    } else if (visualProfile === 'p06') {
       return <boxGeometry args={[2, 0.2, 1.5]} />;
-    } else if (key.includes('lamp')) {
+    } else if (visualProfile === 'p04') {
       return <cylinderGeometry args={[0.3, 0.5, 1.5, 16]} />;
-    } else if (key.includes('bench')) {
+    } else if (visualProfile === 'p11') {
       return <boxGeometry args={[2.5, 0.3, 0.8]} />;
-    }
-    
-    // Kitchenware
-    else if (key.includes('mug') || key.includes('cup')) {
+    } else if (visualProfile === 'p03') {
       return <cylinderGeometry args={[0.5, 0.6, 1, 32]} />;
-    } else if (key.includes('bowl')) {
+    } else if (visualProfile === 'p08') {
       return <sphereGeometry args={[0.7, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />;
-    } else if (key.includes('spoon')) {
+    } else if (visualProfile === 'p10') {
       return <capsuleGeometry args={[0.15, 1.2, 8, 16]} />;
-    }
-    
-    // Vehicles
-    else if (key.includes('bicycle') || key.includes('bike')) {
+    } else if (visualProfile === 'p02') {
       return <torusGeometry args={[1, 0.3, 16, 100]} />;
-    } else if (key.includes('car')) {
+    } else if (visualProfile === 'p09') {
       return <boxGeometry args={[2, 0.8, 1.2]} />;
-    }
-    
-    // Tools
-    else if (key.includes('hammer')) {
+    } else if (visualProfile === 'p05') {
       return <capsuleGeometry args={[0.2, 1, 8, 16]} />;
-    } else if (key.includes('key')) {
+    } else if (visualProfile === 'p12') {
       return <boxGeometry args={[0.15, 1, 0.05]} />;
-    }
-    
-    // Electronics
-    else if (key.includes('phone')) {
+    } else if (visualProfile === 'p07') {
       return <boxGeometry args={[0.4, 0.8, 0.08]} />;
     }
     
@@ -167,7 +182,7 @@ function StudioLighting() {
   );
 }
 
-export default function ObjectViewer({ objectKey }: ObjectViewerProps) {
+export default function ObjectViewer({ visualProfile }: ObjectViewerProps) {
   const zoomLevel = useGameStore(state => state.zoomLevel);
   const revealTier = useGameStore(state => state.revealTier);
   
@@ -188,8 +203,13 @@ export default function ObjectViewer({ objectKey }: ObjectViewerProps) {
         <PerspectiveCamera makeDefault position={[0, 0, cameraDistance]} fov={50} />
         
         <StudioLighting />
+
+        <mesh position={[0, -1.08, 0]} receiveShadow>
+          <cylinderGeometry args={[1.45, 1.62, 0.14, 64]} />
+          <meshStandardMaterial color="#E3DED6" roughness={0.82} />
+        </mesh>
         
-        <SceneObject objectKey={objectKey} />
+        <SceneObject visualProfile={visualProfile} />
         
         {/* Contact shadows for grounded look */}
         <ContactShadows
@@ -234,6 +254,7 @@ export default function ObjectViewer({ objectKey }: ObjectViewerProps) {
       }}>
         Zoom {zoomLevel + 1}/4 · Reveal {revealTier + 1}/4
       </div>
+      <StageCaption />
     </div>
   );
 }

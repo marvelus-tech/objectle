@@ -112,17 +112,33 @@ Remember: synonyms are accepted (e.g., bike = bicycle, cup = mug).
 3. read_view
    → "The handle is curved, there is a tapered body"
 
-4. submit_guess { "name": "pitcher" }
+4. publish_status {
+     "headline": "The profile suggests a handled vessel",
+     "rationale": "The curved projection and tapered body point to kitchenware.",
+     "candidates": [{ "name": "pitcher", "confidence": 55 }, { "name": "mug", "confidence": 35 }],
+     "next": "guess pitcher",
+     "confidence": "medium"
+   }
+
+5. submit_guess { "name": "pitcher" }
    → Incorrect. Category: kitchenware ✓, Material: ceramic ✗, Scale: small ✓
    → Reveal tier increased. More detail visible.
 
-5. zoom { "level": 1 }
+6. publish_status {
+     "headline": "Keeping small kitchenware, ruling out ceramic",
+     "rationale": "Category and scale matched; material did not.",
+     "candidates": [{ "name": "mug", "confidence": 70 }],
+     "next": "zoom in, then inspect again",
+     "confidence": "high"
+   }
+
+7. zoom { "level": 1 }
    → Get closer
 
-6. read_view
+8. read_view
    → "Now see more detail: a cylindrical body, possibly a mug or cup"
 
-7. submit_guess { "name": "mug" }
+9. submit_guess { "name": "mug" }
    → Correct! You won in 2 guesses.
 ```
 
@@ -134,6 +150,7 @@ Remember: synonyms are accepted (e.g., bike = bicycle, cup = mug).
 4. **Zoom progressively**: Each wrong guess unlocks more zoom
 5. **Think synonyms**: The game accepts common variations (bike/bicycle, lamp/light)
 6. **Watch the reveal tier**: As it increases, read_view gives richer descriptions
+7. **Narrate for the room**: Use publish_status for short public summaries, not private chain-of-thought
 
 ## Scoring
 

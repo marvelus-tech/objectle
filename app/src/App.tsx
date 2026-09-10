@@ -9,22 +9,31 @@ import AgentPanel from './components/AgentPanel';
 import ToolLog from './components/ToolLog';
 import PassCard from './components/PassCard';
 import ProgressionChrome from './components/ProgressionChrome';
+import HypothesisBoard from './components/HypothesisBoard';
 import { useGameStore } from './lib/store';
 import { api } from './lib/api';
 import { registerWebMCPTools } from './lib/webmcp';
+import { initializeTheaterRoom, useRoomStore } from './lib/room';
 
 export default function App() {
   const initGame = useGameStore(state => state.initGame);
   const objectKey = useGameStore(state => state.objectKey);
+  const visualProfile = useGameStore(state => state.visualProfile);
   const loading = useGameStore(state => state.loading);
   const error = useGameStore(state => state.error);
   const setLoading = useGameStore(state => state.setLoading);
   const setError = useGameStore(state => state.setError);
+  const setRoomConnection = useRoomStore(state => state.setConnection);
+  const roomConnection = useRoomStore(state => state.connection);
   
   // Load daily challenge and register WebMCP tools on mount
   useEffect(() => {
     loadDailyChallenge();
     registerWebMCPTools();
+    void initializeTheaterRoom().catch(error => {
+      console.warn('Theater room unavailable:', error);
+      setRoomConnection('offline');
+    });
   }, []);
   
   const loadDailyChallenge = async () => {
@@ -33,7 +42,7 @@ export default function App() {
     
     try {
       const challenge = await api.getDailyChallenge();
-      initGame(challenge.date, challenge.objectKey);
+      initGame(challenge.date, challenge.objectKey, challenge.visualProfile);
     } catch (err) {
       console.error('Failed to load daily challenge:', err);
       setError('Failed to load today\'s challenge. Please refresh the page.');
@@ -63,7 +72,7 @@ export default function App() {
     );
   }
   
-  if (!objectKey) {
+  if (!objectKey || !visualProfile) {
     return (
       <div style={styles.centered}>
         <div style={styles.loader}>No challenge available</div>
@@ -72,33 +81,46 @@ export default function App() {
   }
   
   return (
-    <div style={styles.app}>
-      <header style={styles.header}>
+    <div className="app-shell" style={styles.app}>
+      <header className="theater-header" style={styles.header}>
+        <span style={styles.roomSignal}>
+          <span
+            style={{
+              ...styles.signalDot,
+              background:
+                roomConnection === 'connected'
+                  ? 'var(--success)'
+                  : 'var(--accent)',
+            }}
+          />
+          {roomConnection === 'connected' ? 'Live theater' : roomConnection}
+        </span>
         <h1 style={styles.title}>Objectle</h1>
-        <p style={styles.subtitle}>Daily 3D Object Guessing Game — Dual-Watch Theater</p>
+        <p style={styles.subtitle}>Daily 3D Object Guessing Game · Dual-Watch Theater</p>
       </header>
       
-      <main style={styles.main}>
+      <main className="theater-main" style={styles.main}>
         {/* Center Stage: Viewer + Progression */}
-        <div style={styles.stageColumn}>
-          <div style={styles.viewerWrapper}>
-            <div style={styles.viewer}>
-              <ObjectViewer objectKey={objectKey} />
+        <div className="stage-column" style={styles.stageColumn}>
+          <div className="viewer-frame" style={styles.viewerWrapper}>
+            <div className="viewer-stage" style={styles.viewer}>
+              <ObjectViewer visualProfile={visualProfile} />
             </div>
             <div style={styles.controls}>
               <ViewerControls />
             </div>
           </div>
           <ProgressionChrome />
+          <HypothesisBoard />
         </div>
         
         {/* Side Rail: Tool Timeline + Game */}
-        <div style={styles.sideColumn}>
-          <div style={styles.toolLogSection}>
+        <div className="side-rail" style={styles.sideColumn}>
+          <div className="tool-log-sticky" style={styles.toolLogSection}>
             <ToolLog />
           </div>
           
-          <div style={styles.gameSection}>
+          <div className="game-section" style={styles.gameSection}>
             <PassCard />
             <GameOver />
             <GuessInput />
@@ -135,11 +157,31 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'var(--field)',
   },
   header: {
+    position: 'relative',
     padding: 'var(--space-6) var(--space-4)',
     textAlign: 'center' as const,
     background: 'var(--surface)',
     borderBottom: `1px solid var(--border-subtle)`,
     boxShadow: 'var(--shadow-sm)',
+  },
+  roomSignal: {
+    position: 'absolute',
+    top: 'var(--space-4)',
+    left: 'var(--space-5)',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 'var(--space-2)',
+    color: 'var(--ink-secondary)',
+    fontSize: '10px',
+    fontWeight: 600,
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase',
+  },
+  signalDot: {
+    width: '7px',
+    height: '7px',
+    borderRadius: '50%',
+    boxShadow: '0 0 0 4px var(--accent-subtle)',
   },
   title: {
     fontSize: 'var(--text-3xl)',

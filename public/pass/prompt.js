@@ -8,11 +8,14 @@
 
   function gameUrl() {
     if (typeof document === "undefined" || !document.location) return LIVE_GAME;
-    var href = document.location.href.split("#")[0];
-    if (/pass\/?/i.test(href)) {
-      return href.replace(/pass\/?.*$/i, "") || LIVE_GAME;
+    try {
+      var url = new URL(document.location.href);
+      url.hash = "";
+      url.pathname = url.pathname.replace(/pass\/?$/i, "");
+      return url.toString();
+    } catch (error) {
+      return LIVE_GAME;
     }
-    return href;
   }
 
   function apiUrl() {
@@ -24,20 +27,23 @@
     var api = apiUrl();
     return (
       "You are playing Objectle. Your human is watching the game on their host screen.\n\n" +
-      "Game URL (open this): " + game + "\n" +
+      "Shared theater URL (open this): " + game + "\n" +
       "Worker API: " + api + "\n\n" +
       "How to play:\n" +
-      "1. Open the game URL above in your browser.\n" +
+      "1. Open the shared theater URL above. Keep its room parameter so your actions appear on the host screen.\n" +
       "2. Use the WebMCP / page modelContext tools to play:\n" +
       "   - read_view() - See current 3D view description\n" +
       "   - rotate_object(axis, degrees) - Rotate for different angles (x/y/z, ±15-45°)\n" +
       "   - zoom(level) - Zoom closer (0-3, unlocks with wrong guesses)\n" +
+      "   - publish_status(headline, rationale, candidates, next, confidence) - Share a concise public working theory\n" +
       "   - submit_guess(name) - Submit your guess\n" +
       "3. You have 6 guesses. Facet feedback shows category/material/scale matches.\n" +
-      "4. Your human is watching the 3D viewer and tool timeline on their screen as you play.\n\n" +
+      "4. Your human is watching the 3D viewer and agent theater on their screen as you play.\n" +
+      "5. Use publish_status before each guess and after interpreting feedback. Share only a short public summary, never private chain-of-thought.\n\n" +
       "Strategy:\n" +
       "- Start with read_view() to see the silhouette\n" +
       "- Rotate around y-axis to see different angles\n" +
+      "- Keep up to three candidates with confidence percentages\n" +
       "- Make informed guesses based on shape, facets, and details\n" +
       "- Zoom unlocks progressively (Heardle-style)\n\n" +
       "Play now!"

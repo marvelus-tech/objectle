@@ -1,5 +1,6 @@
 import React from 'react';
 import { useGameStore } from '../lib/store';
+import { useTheaterStore } from '../lib/theater';
 
 /**
  * Control panel for rotating and zooming the 3D object
@@ -14,8 +15,28 @@ export default function ViewerControls() {
   
   // Gating: early rotation is limited, zoom unlocks progressively
   const canRotate = true; // Always allow some rotation
-  const maxZoom = Math.min(revealTier + 1, 3);
+  const maxZoom = Math.min(guesses.filter(guess => !guess.correct).length, 3);
   const rotationStep = revealTier >= 2 ? 30 : 15; // Larger steps when more revealed
+
+  const handleRotate = (axis: 'x' | 'y', degrees: number) => {
+    const eventId = useTheaterStore
+      .getState()
+      .startTool('rotate_object', { axis, degrees }, 'human');
+    rotate(axis, degrees);
+    useTheaterStore
+      .getState()
+      .completeTool(eventId, `Host rotated ${axis}-axis by ${degrees}°.`, true);
+  };
+
+  const handleZoom = (level: number) => {
+    const eventId = useTheaterStore
+      .getState()
+      .startTool('zoom', { level }, 'human');
+    zoom(level);
+    useTheaterStore
+      .getState()
+      .completeTool(eventId, `Host selected zoom level ${level}.`, true);
+  };
   
   return (
     <div style={styles.container}>
@@ -23,7 +44,7 @@ export default function ViewerControls() {
         <h3 style={styles.heading}>Rotate Object</h3>
         <div style={styles.buttonGrid}>
           <button
-            onClick={() => rotate('y', -rotationStep)}
+            onClick={() => handleRotate('y', -rotationStep)}
             style={styles.button}
             disabled={!canRotate}
             title="Rotate left"
@@ -31,7 +52,7 @@ export default function ViewerControls() {
             ← Left
           </button>
           <button
-            onClick={() => rotate('y', rotationStep)}
+            onClick={() => handleRotate('y', rotationStep)}
             style={styles.button}
             disabled={!canRotate}
             title="Rotate right"
@@ -39,7 +60,7 @@ export default function ViewerControls() {
             Right →
           </button>
           <button
-            onClick={() => rotate('x', -rotationStep)}
+            onClick={() => handleRotate('x', -rotationStep)}
             style={styles.button}
             disabled={!canRotate}
             title="Rotate up"
@@ -47,7 +68,7 @@ export default function ViewerControls() {
             ↑ Up
           </button>
           <button
-            onClick={() => rotate('x', rotationStep)}
+            onClick={() => handleRotate('x', rotationStep)}
             style={styles.button}
             disabled={!canRotate}
             title="Rotate down"
@@ -61,7 +82,7 @@ export default function ViewerControls() {
         <h3 style={styles.heading}>Zoom Level</h3>
         <div style={styles.zoomControls}>
           <button
-            onClick={() => zoom(zoomLevel - 1)}
+            onClick={() => handleZoom(zoomLevel - 1)}
             style={styles.button}
             disabled={zoomLevel <= 0}
             title="Zoom out"
@@ -70,7 +91,7 @@ export default function ViewerControls() {
           </button>
           <span style={styles.zoomDisplay}>{zoomLevel + 1} / {maxZoom + 1}</span>
           <button
-            onClick={() => zoom(zoomLevel + 1)}
+            onClick={() => handleZoom(zoomLevel + 1)}
             style={styles.button}
             disabled={zoomLevel >= maxZoom}
             title="Zoom in"

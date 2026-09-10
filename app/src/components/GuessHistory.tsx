@@ -61,12 +61,15 @@ export default function GuessHistory() {
 
 function FacetBadge({ label, value, match }: { label: string; value: string; match: boolean }) {
   return (
-    <div style={{
-      ...styles.facetBadge,
-      background: match ? 'var(--success-bg)' : 'var(--error-bg)',
-      borderColor: match ? 'var(--success)' : 'var(--error)',
-      color: match ? 'var(--success)' : 'var(--error)',
-    }}>
+    <div
+      className={match ? 'facet-chip facet-chip--match' : 'facet-chip'}
+      style={{
+        ...styles.facetBadge,
+        background: match ? 'var(--success-bg)' : 'var(--error-bg)',
+        borderColor: match ? 'var(--success)' : 'var(--error)',
+        color: match ? 'var(--success)' : 'var(--error)',
+      }}
+    >
       <div style={styles.facetLabel}>{label}</div>
       <div style={styles.facetValue}>{value}</div>
     </div>
