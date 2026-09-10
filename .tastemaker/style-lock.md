@@ -295,7 +295,7 @@ Rules:
 ### Canvas Frame
 - Background: `--stage-bg` (`#F0EEEA`)
 - ContactShadows: opacity 0.2, blur 3, position y=-1
-- Cyclorama back-plane: `#F0EEEA` (concrete hex in the material, matches `--stage-bg`)
+- Cyclorama back-plane: `#F0EEEA` and plinth `#E3DED6`, both `MeshBasicMaterial` with `toneMapped={false}`. Unlit on purpose: the reveal ritual dims the object, never the room, so the stage stays light at tier 0.
 - Outer frame: `.prism-frame` (see above). No white card between the frame and the field.
 - Materials and lights stay in the light gallery register. Neon lives in CSS only; never tint Three.js lights cyan or violet.
 

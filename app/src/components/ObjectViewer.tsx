@@ -204,9 +204,10 @@ export default function ObjectViewer({ visualProfile }: ObjectViewerProps) {
         
         <StudioLighting />
 
+        {/* Plinth and cyclorama are unlit so the studio stays light at every reveal tier */}
         <mesh position={[0, -1.08, 0]} receiveShadow>
           <cylinderGeometry args={[1.45, 1.62, 0.14, 64]} />
-          <meshStandardMaterial color="#E3DED6" roughness={0.82} />
+          <meshBasicMaterial color="#E3DED6" toneMapped={false} />
         </mesh>
         
         <SceneObject visualProfile={visualProfile} />
@@ -231,9 +232,9 @@ export default function ObjectViewer({ visualProfile }: ObjectViewerProps) {
         />
         
         {/* Infinity cyclorama backdrop */}
-        <mesh position={[0, 0, -8]} receiveShadow>
+        <mesh position={[0, 0, -8]}>
           <planeGeometry args={[50, 50]} />
-          <meshStandardMaterial color="#F0EEEA" roughness={1} />
+          <meshBasicMaterial color="#F0EEEA" toneMapped={false} />
         </mesh>
       </Canvas>
       
