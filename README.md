@@ -72,27 +72,36 @@ Objectle 2026-09-06 3/6
 
 ## Local Development
 
+### Fastest path (agent drives the UI, no Cloudflare deploy)
+
+```bash
+npm install
+npm run dev:local
+```
+
+Then open http://127.0.0.1:3000, copy `?room=ABCD` from the URL, and run:
+
+```bash
+npm run smoke:agent -- ABCD
+```
+
+Full walkthrough: [LEARN_LOCAL.md](./LEARN_LOCAL.md).
+
 ### Prerequisites
 - Node.js 18+
-- Cloudflare account (for deployment)
-- Wrangler CLI
+- Wrangler CLI (via `npm install` — no Cloudflare account needed for `--local`)
+- Cloudflare account only when you want to deploy
 
-### Setup
+### Manual setup (two terminals)
 
 1. Install dependencies:
 ```bash
 npm install
 ```
 
-2. Set up the D1 database:
+2. Set up the local D1 database:
 ```bash
-# Create D1 database
-wrangler d1 create objectle-db
-
-# Update wrangler.jsonc with the returned database_id
-
-# Run migrations
-wrangler d1 execute objectle-db --local --file=./schema.sql
+npm run db:migrate:local
 ```
 
 3. Start the Worker (backend):
@@ -115,8 +124,8 @@ The MCP server requires the Worker to be running. Configure it in your MCP clien
 {
   "mcpServers": {
     "objectle-viewer": {
-      "command": "node",
-      "args": ["worker/mcp-server.js"],
+      "command": "npx",
+      "args": ["tsx", "worker/mcp-server.ts"],
       "env": {
         "WORKER_API": "http://localhost:8787/api"
       }

@@ -47,7 +47,10 @@ export default function App() {
     loadDailyChallenge().then(() => {
       registerWebMCPTools();
       const code = resolveRoomCode();
-      if (isWorkerAvailable()) stopSync = startRoomSync(code);
+      // Local learning path: always poll the room in DEV so an agent can drive
+      // the UI as soon as `npm run dev:local` brings the Worker up — even if the
+      // first daily-challenge fetch fell back to the offline catalog.
+      if (import.meta.env.DEV || isWorkerAvailable()) stopSync = startRoomSync(code);
       else setRoom(code, false);
     });
     return () => stopSync?.();

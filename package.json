@@ -5,12 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:local": "node scripts/dev-local.mjs",
+    "smoke:agent": "bash scripts/smoke-agent.sh",
     "build": "vite build",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "preview": "vite preview",
-    "worker:dev": "wrangler dev",
+    "worker:dev": "wrangler dev --local",
     "worker:deploy": "wrangler deploy",
-    "db:migrate": "wrangler d1 execute objectle-db --remote --file=./schema.sql"
+    "db:migrate": "wrangler d1 execute objectle-db --remote --file=./schema.sql",
+    "db:migrate:local": "wrangler d1 execute objectle-db --local --file=./schema.sql"
   },
   "dependencies": {
     "@react-three/drei": "^9.114.3",

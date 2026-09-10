@@ -33,4 +33,6 @@ coverage/
 # Ignore temporary files
 .cache/
 .temp/
+.tmp/
 tmp/
+wrangler.preview.jsonc
