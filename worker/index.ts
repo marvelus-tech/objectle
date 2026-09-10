@@ -22,7 +22,7 @@ import { checkGuess, GameError, getChallenge } from './game';
 import { handleMcp } from './mcp-http';
 import type { Actor, RoomState } from './room';
 import { MAX_GUESSES, MAX_ZOOM, countWrong, maxZoomFor } from '../shared/progression';
-import { toToolArgs, type ToolArgs } from '../shared/tools';
+import { resolveToolName, toToolArgs, type ToolArgs } from '../shared/tools';
 
 export { RoomDO } from './room';
 
@@ -38,7 +38,39 @@ export default {
     const path = url.pathname.replace(/\/+$/, '') || '/';
 
     try {
-      const room = path.match(/^\/api\/room\/([^/]+)(?:\/(.*))?$/);
+      // Liveness for agents / uptime checks. Always 200 once this Worker build is live.
+      if (path === '/api/health' || path === '/health') {
+        return json({
+          ok: true,
+          service: 'objectle-worker',
+          rooms: true,
+          version: 'room-api-v1',
+        });
+      }
+
+      // Helpful discovery when an agent hits /api/room with no code.
+      if (path === '/api/room') {
+        return text(
+          [
+            'Objectle live rooms',
+            '',
+            'Pick a 4-8 character room code (usually shown on the host screen), then:',
+            `  GET  ${url.origin}/api/room/ABCD`,
+            `  GET  ${url.origin}/api/room/ABCD/state`,
+            `  GET  ${url.origin}/api/room/ABCD/tools/read_view`,
+            `  GET  ${url.origin}/api/room/ABCD/tools/rotate_object?axis=y&degrees=30`,
+            `  GET  ${url.origin}/api/room/ABCD/tools/zoom?level=1`,
+            `  GET  ${url.origin}/api/room/ABCD/tools/submit_guess?name=mug`,
+            `  POST ${url.origin}/mcp/ABCD`,
+            '',
+            'Rooms are created automatically on first access — no host handshake required.',
+          ].join('\n'),
+        );
+      }
+
+      // Accept /api/room/:code and a few agent-common misspellings.
+      const room = path.match(/^\/api\/rooms?\/([^/]+)(?:\/(.*))?$/)
+        || path.match(/^\/room\/([^/]+)(?:\/(.*))?$/);
       if (room) return handleRoom(request, env, url, room[1], room[2] ?? '');
 
       const mcp = path.match(/^\/mcp(?:\/([^/]+))?$/);
@@ -53,7 +85,10 @@ export default {
       if (path === '/api/score' && request.method === 'GET') return handleGetScore(url, env);
       if (path === '/api/leaderboard' && request.method === 'GET') return handleGetLeaderboard(env);
 
-      return text('Not Found', 404);
+      return text(
+        `Not Found: ${path}\n\nTry GET /api/health or GET /api/room/ABCD`,
+        404,
+      );
     } catch (error) {
       if (error instanceof GameError) return json({ error: error.message }, error.status);
       console.error('Worker error:', error);
@@ -85,8 +120,16 @@ async function handleRoom(request: Request, env: Env, url: URL, rawCode: string,
     return json(await stub.getEvents(code, since, fromHost));
   }
 
-  const tool = rest.match(/^tools\/([a-z_]+)$/);
+  const tool = rest.match(/^tools\/([A-Za-z0-9_-]+)$/);
   if (tool) {
+    const resolved = resolveToolName(tool[1]);
+    if (!resolved) {
+      return text(
+        `Unknown tool "${tool[1]}". Available: read_view, rotate_object, zoom, publish_status, submit_guess.`,
+        404,
+      );
+    }
+
     const actor: Actor = url.searchParams.get('actor') === 'host' ? 'host' : 'agent';
     let args: ToolArgs = {};
     if (request.method === 'POST') {
@@ -98,13 +141,16 @@ async function handleRoom(request: Request, env: Env, url: URL, rawCode: string,
       });
     }
 
-    const result = await stub.callTool(code, tool[1], args, actor);
+    const result = await stub.callTool(code, resolved, args, actor);
     const wantsJson = request.method === 'POST' || url.searchParams.get('format') === 'json';
     if (wantsJson) return json(result, result.success ? 200 : 422);
     return text(result.text, result.success ? 200 : 422);
   }
 
-  return text('Not Found', 404);
+  return text(
+    `Not Found under room ${code}: /${rest}\nTry /api/room/${code} or /api/room/${code}/tools/read_view`,
+    404,
+  );
 }
 
 /**

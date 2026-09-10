@@ -2,7 +2,35 @@
 
 This document explains how to deploy Objectle to production.
 
+## Troubleshooting: Agent gets `Not Found` on `/api/room/XXXX`
+
+**Symptom:** Grok / Claude / Cursor can hit `/api/daily-challenge` (200) but every
+`/api/room/...` or `/mcp/...` URL returns plain `Not Found`.
+
+**Cause:** The live Worker (`objectle-worker-demo`) is an older build that only
+has the single-player routes. Room + Durable Object routes exist in `main` but
+were never uploaded because `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`
+were missing from GitHub Actions (the Deploy Worker job soft-skipped).
+
+**Fix:**
+
+1. Create a Cloudflare API token with **Workers Scripts Edit**, **Workers Tail Read**,
+   **D1 Edit**, and **Account Settings Read**.
+2. Add repository secrets:
+   - `CLOUDFLARE_API_TOKEN`
+   - `CLOUDFLARE_ACCOUNT_ID`
+3. Run **Actions → Deploy Worker → Run workflow** (or push to `main`).
+4. Confirm:
+   ```bash
+   curl -sS https://objectle-worker-demo.marvelus.workers.dev/api/health
+   curl -sS https://objectle-worker-demo.marvelus.workers.dev/api/room/XB7J
+   curl -sS https://objectle-worker-demo.marvelus.workers.dev/api/room/XB7J/tools/read_view
+   ```
+   All three should return 200. Rooms are created automatically on first access —
+   the host screen does **not** need to be open first.
+
 ## Prerequisites
+
 
 - Cloudflare account
 - GitHub account (for automatic deployments)

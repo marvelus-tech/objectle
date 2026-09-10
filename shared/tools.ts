@@ -127,6 +127,47 @@ export function isToolName(value: string): value is ToolName {
 }
 
 /**
+ * Agents invent names. Map common aliases onto the canonical ToolName so a
+ * Grok/Claude call to read_view / rotate_object / submit_guess still works.
+ */
+const TOOL_ALIASES: Record<string, ToolName> = {
+  read_view: 'read_view',
+  readview: 'read_view',
+  'read-view': 'read_view',
+  observe: 'read_view',
+  look: 'read_view',
+  view: 'read_view',
+
+  rotate_object: 'rotate_object',
+  rotateobject: 'rotate_object',
+  'rotate-object': 'rotate_object',
+  rotate: 'rotate_object',
+  turn: 'rotate_object',
+
+  zoom: 'zoom',
+  zoom_in: 'zoom',
+  zoom_out: 'zoom',
+
+  submit_guess: 'submit_guess',
+  submitguess: 'submit_guess',
+  'submit-guess': 'submit_guess',
+  guess: 'submit_guess',
+  submit: 'submit_guess',
+
+  publish_status: 'publish_status',
+  publishstatus: 'publish_status',
+  'publish-status': 'publish_status',
+  status: 'publish_status',
+  narrate: 'publish_status',
+};
+
+export function resolveToolName(raw: string): ToolName | null {
+  const key = raw.trim().toLowerCase().replace(/[\s-]+/g, '_');
+  if (isToolName(key)) return key;
+  return TOOL_ALIASES[key] ?? TOOL_ALIASES[key.replace(/_/g, '')] ?? null;
+}
+
+/**
  * Coerce loosely-typed args (query-string values, LLM JSON) into what each tool
  * expects. Throws a readable error for agents when required args are missing.
  */
