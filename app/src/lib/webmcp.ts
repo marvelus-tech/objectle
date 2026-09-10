@@ -1,13 +1,13 @@
 /**
- * Browser WebMCP implementation for Objectle.
+ * Browser WebMCP for Objectle (Foresight-style, page-first).
  *
- * Registers viewer tools on `window.modelContext` and exposes `callWebMCPTool`
- * for in-page controls. Live rooms route every call through RoomDO so the host
- * screen and the agent share one state. Offline, tools run locally.
+ * Tools register on `document.modelContext` (polyfill or native). The Agent
+ * Tools panel always works on this tab. Room Worker is optional sync — if it
+ * flakes, tools still drive the local store + theater so demos never brick.
  */
 
 import { useGameStore, type Actor } from './store';
-import { api } from './api';
+import { api, isWorkerAvailable } from './api';
 import { callRoomTool, onRoomEvent, toLiveAction, type RoomEvent } from './room';
 import { TOOL_DEFINITIONS, normalizeToolArgs, type ToolName } from '../../../shared/tools';
 import { countWrong, describeGuess, describeView, maxZoomFor, MAX_ZOOM } from '../../../shared/progression';
@@ -93,7 +93,7 @@ async function executeLocally(tool: ToolName, rawArgs: Record<string, unknown>):
         store.rotate(args.axis as 'x' | 'y' | 'z', args.degrees as number);
         const s = useGameStore.getState();
         return {
-          text: `Rotated object ${args.degrees}° around ${args.axis}-axis. Current rotation: X=${s.rotationX}°, Y=${s.rotationY}°, Z=${s.rotationZ}°`,
+          text: `Rotated object ${args.degrees}° around ${args.axis}-axis. Current rotation: X=${s.rotationX}°, Y=${s.rotationY}°, Z=${s.rotationZ}°. Tell your human to watch the Objectle tab.`,
           success: true,
         };
       }
@@ -104,7 +104,7 @@ async function executeLocally(tool: ToolName, rawArgs: Record<string, unknown>):
           return { text: `Zoom level ${level} is locked. Maximum available: ${unlocked}. Make more guesses to unlock higher zoom levels.`, success: false };
         }
         store.zoom(level);
-        return { text: `Zoom set to level ${level}/${MAX_ZOOM}. Camera distance adjusted.`, success: true };
+        return { text: `Zoom set to level ${level}/${MAX_ZOOM}. Camera distance adjusted. Tell your human to watch the Objectle tab.`, success: true };
       }
       case 'submit_guess': {
         const name = args.name as string;
@@ -123,14 +123,12 @@ async function executeLocally(tool: ToolName, rawArgs: Record<string, unknown>):
   }
 }
 
-export async function runTool(tool: ToolName, args: Record<string, unknown>, actor: Actor): Promise<{ text: string; success: boolean }> {
-  const { roomCode, roomConnected } = useGameStore.getState();
-  if (roomCode && roomConnected) {
-    const res = await callRoomTool(roomCode, tool, args, actor);
-    return { text: res.text, success: res.success };
-  }
-
-  const local = await executeLocally(tool, args);
+async function finishLocal(
+  tool: ToolName,
+  args: Record<string, unknown>,
+  actor: Actor,
+  local: { text: string; success: boolean },
+): Promise<{ text: string; success: boolean }> {
   const event: RoomEvent = { seq: 0, ts: Date.now(), actor, tool, args, result: local.text, success: local.success };
   logToolExecution({ actor, tool, args, result: local.text, success: local.success });
   const theater = useTheaterStore.getState();
@@ -151,6 +149,27 @@ export async function runTool(tool: ToolName, args: Record<string, unknown>, act
   return local;
 }
 
+export async function runTool(tool: ToolName, args: Record<string, unknown>, actor: Actor): Promise<{ text: string; success: boolean }> {
+  const { roomCode, roomConnected } = useGameStore.getState();
+  const demoLocal =
+    typeof window !== 'undefined' &&
+    (new URLSearchParams(window.location.search).get('demo') === '1' ||
+      new URLSearchParams(window.location.search).get('local') === '1' ||
+      !isWorkerAvailable());
+  // Prefer the live room when connected, but never brick a demo if the Worker flakes / demo=1.
+  if (!demoLocal && roomCode && roomConnected) {
+    try {
+      const res = await callRoomTool(roomCode, tool, args, actor);
+      return { text: res.text, success: res.success };
+    } catch (err) {
+      console.warn('Room tool failed; falling back to local theater', err);
+    }
+  }
+
+  const local = await executeLocally(tool, args);
+  return finishLocal(tool, args, actor, local);
+}
+
 export const webmcpTools: WebMCPTool[] = TOOL_DEFINITIONS.map(def => ({
   name: def.name,
   description: def.description,
@@ -161,16 +180,81 @@ export const webmcpTools: WebMCPTool[] = TOOL_DEFINITIONS.map(def => ({
   },
 }));
 
+export type WebMCPMode = 'live' | 'polyfill' | 'panel';
+
+let registrationMode: WebMCPMode = 'panel';
+let toolsRegistered = false;
+
+export function getWebMCPMode(): WebMCPMode {
+  return registrationMode;
+}
+
+/** Open the Agent Tools panel (DemoBanner / PassCard dispatch this). */
+export function openAgentPanel() {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent('objectle:open-agent-panel'));
+}
+
+/**
+ * Register tools Foresight-style:
+ *   1) document.modelContext.registerTool (native / polyfill)
+ *   2) window.modelContext.registerTools (legacy plural)
+ *   3) panel-only fallback (Agent Tools UI still works)
+ */
 export function registerWebMCPTools() {
   if (typeof window === 'undefined') return;
-  // @ts-ignore - experimental modelContext API
-  const modelContext = window.modelContext;
-  if (modelContext?.registerTools) {
-    modelContext.registerTools(webmcpTools);
-    console.log('WebMCP tools registered:', webmcpTools.map(t => t.name));
-  } else {
-    console.info('modelContext API not available in this browser; agents connect through the room URL instead.');
+  // React StrictMode mounts twice in DEV; polyfill throws if we re-register.
+  if (toolsRegistered) return;
+
+  const docCtx = (document as unknown as { modelContext?: ModelContextHost }).modelContext;
+  const winCtx = (window as unknown as { modelContext?: ModelContextHost }).modelContext;
+  let registered = false;
+
+  const singular = docCtx?.registerTool ?? winCtx?.registerTool;
+  if (typeof singular === 'function') {
+    const host = docCtx?.registerTool ? docCtx : winCtx;
+    for (const tool of webmcpTools) {
+      void singular.call(host, {
+        name: tool.name,
+        description: tool.description,
+        inputSchema: tool.inputSchema,
+        async execute(args: Record<string, unknown>) {
+          const { text } = await runTool(tool.name, args ?? {}, 'agent');
+          return text;
+        },
+      });
+    }
+    registered = true;
   }
+
+  const plural = docCtx?.registerTools ?? winCtx?.registerTools;
+  if (!registered && typeof plural === 'function') {
+    const host = docCtx?.registerTools ? docCtx : winCtx;
+    plural.call(host, webmcpTools);
+    registered = true;
+  }
+
+  const hasPolyfill = typeof (window as unknown as { __webmcp_registered_tools?: unknown }).__webmcp_registered_tools !== 'undefined';
+  registrationMode = registered ? (hasPolyfill ? 'polyfill' : 'live') : 'panel';
+  if (registered) toolsRegistered = true;
+
+  if (registered) {
+    console.log(`WebMCP tools registered (${registrationMode}):`, webmcpTools.map(t => t.name));
+  } else {
+    console.info('WebMCP host API missing — use Agent Tools on this tab (Foresight fallback).');
+  }
+
+  (window as unknown as { __objectleWebMCP?: unknown }).__objectleWebMCP = {
+    mode: registrationMode,
+    tools: webmcpTools.map(t => t.name),
+    call: callWebMCPTool,
+    openPanel: openAgentPanel,
+  };
+}
+
+interface ModelContextHost {
+  registerTool?: (tool: Record<string, unknown>) => void | Promise<void>;
+  registerTools?: (tools: unknown[]) => void;
 }
 
 export async function callWebMCPTool(toolName: string, args: Record<string, unknown>, actor: Actor = 'host'): Promise<string> {

@@ -36,6 +36,8 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Foresight-style WebMCP polyfill: no-ops if native document.modelContext exists -->
+    <script src="./shared/webmcp-polyfill.js"></script>
     <script type="module" src="./app/src/main.tsx"></script>
   </body>
 </html>

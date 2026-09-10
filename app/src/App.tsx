@@ -6,6 +6,7 @@ import GuessHistory from './components/GuessHistory';
 import GameOver from './components/GameOver';
 import ShareModal from './components/ShareModal';
 import AgentPanel from './components/AgentPanel';
+import DemoBanner from './components/DemoBanner';
 import ToolLog from './components/ToolLog';
 import PassCard from './components/PassCard';
 import ProgressionChrome from './components/ProgressionChrome';
@@ -47,6 +48,8 @@ export default function App() {
     loadDailyChallenge().then(() => {
       registerWebMCPTools();
       const code = resolveRoomCode();
+      // Page-first demo: only attach the room when the Worker is actually up.
+      // Otherwise stay local so Agent Tools / WebMCP never wait on a dead proxy.
       if (isWorkerAvailable()) stopSync = startRoomSync(code);
       else setRoom(code, false);
     });
@@ -139,6 +142,7 @@ export default function App() {
             </div>
           </NeonStage>
           <ViewerControls />
+          <DemoBanner />
           <PassCard />
           <details style={styles.moreDetails}>
             <summary style={styles.moreSummary}>Progression & theory</summary>
