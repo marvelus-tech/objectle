@@ -14,8 +14,10 @@ export default function ToolLog() {
   const events = useTheaterStore(state => state.events);
   const [expanded, setExpanded] = useState(true);
 
+  const stepLabel = Math.min(events.length, 4);
+
   return (
-    <div className="prism-hairline" style={styles.container}>
+    <div className="glass-panel" style={styles.container}>
       <button
         type="button"
         style={styles.header}
@@ -24,18 +26,51 @@ export default function ToolLog() {
       >
         <span>
           <span style={styles.eyebrow}>Agent tool timeline</span>
-          <span style={styles.title}>Live director's log</span>
+          <span style={styles.title}>Live probe</span>
         </span>
-        <span style={styles.count}>Step {events.length}</span>
+        <span style={styles.count}>
+          Step {stepLabel} / 4
+        </span>
       </button>
-      
+
       {expanded && (
         <div style={styles.logContainer} aria-live="polite">
           {events.length === 0 ? (
             <div style={styles.emptyState}>
-              <p style={styles.emptyText}>Waiting for an agent...</p>
-              <p style={styles.emptySubtext}>
-                Every observation, action, and result will unfold here.
+              <ol style={styles.probeList}>
+                <li style={styles.probeActive}>
+                  <span style={styles.probeDot} />
+                  <div>
+                    <strong>Scan shape</strong>
+                    <span style={styles.probeHint}>Analyzing silhouette...</span>
+                  </div>
+                </li>
+                <li style={styles.probeIdle}>
+                  <span style={styles.probeRing} />
+                  <div>
+                    <strong>Material probe</strong>
+                    <span style={styles.probeHint}>Estimating material...</span>
+                  </div>
+                </li>
+                <li style={styles.probeIdle}>
+                  <span style={styles.probeRing} />
+                  <div>
+                    <strong>Context search</strong>
+                    <span style={styles.probeHint}>Searching knowledge...</span>
+                  </div>
+                </li>
+                <li style={styles.probeIdle}>
+                  <span style={styles.probeRing} />
+                  <div>
+                    <strong>Final guess</strong>
+                    <span style={styles.probeHint}>Forming hypothesis...</span>
+                  </div>
+                </li>
+              </ol>
+              <p style={styles.thinking}>
+                <span style={styles.thinkingSpark} aria-hidden />
+                Agent is thinking
+                <span style={styles.thinkingDots}>...</span>
               </p>
             </div>
           ) : (
@@ -81,7 +116,7 @@ function ToolEntry({ event, index }: { event: ToolTheaterEvent; index: number })
   const [showRaw, setShowRaw] = useState(false);
   const running = event.phase === 'running';
   const accent = running
-    ? 'var(--neon-a)'
+    ? 'var(--accent)'
     : event.success
       ? 'var(--success)'
       : 'var(--error)';
@@ -168,60 +203,54 @@ function FacetSummary({ detail }: { detail: NonNullable<ToolTheaterEvent['detail
 
 const styles: Record<string, React.CSSProperties> = {
   container: {
-    background: 'var(--surface)',
-    borderRadius: 'var(--radius-xl)',
-    boxShadow: 'var(--shadow-md)',
-    border: `1px solid var(--border-subtle)`,
     overflow: 'hidden',
+    border: '1px solid var(--border-subtle)',
+    boxShadow: 'var(--shadow-md), 0 0 0 1px rgba(34, 211, 238, 0.08)',
   },
   header: {
     width: '100%',
     border: 0,
-    borderBottom: '1px solid var(--border-subtle)',
     padding: 'var(--space-4) var(--space-5)',
-    background: 'var(--surface)',
+    background: 'transparent',
     color: 'var(--ink)',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     textAlign: 'left',
+    borderBottom: '1px solid var(--border-subtle)',
   },
   eyebrow: {
     display: 'block',
     marginBottom: '2px',
-    color: 'var(--ink-tertiary)',
     fontSize: '10px',
     fontWeight: 600,
     letterSpacing: '0.12em',
     textTransform: 'uppercase',
+    color: 'var(--accent)',
   },
   title: {
     display: 'block',
     fontSize: 'var(--text-base)',
     fontFamily: 'var(--font-display)',
     fontWeight: 600,
-    letterSpacing: '0.01em',
+    letterSpacing: '0.02em',
   },
   count: {
-    padding: '4px 10px',
-    borderRadius: '999px',
-    background: 'var(--accent-subtle)',
-    color: 'var(--ink-secondary)',
-    fontSize: '10px',
+    fontSize: '11px',
     fontWeight: 600,
-    letterSpacing: '0.06em',
+    letterSpacing: '0.08em',
     textTransform: 'uppercase',
-    fontVariantNumeric: 'tabular-nums',
+    color: 'var(--ink-tertiary)',
   },
   logContainer: {
-    maxHeight: '400px',
+    maxHeight: '420px',
     overflowY: 'auto' as const,
     padding: 'var(--space-4)',
   },
   logEntry: {
     marginBottom: 'var(--space-3)',
     padding: 'var(--space-4)',
-    background: 'var(--surface-subtle)',
+    background: 'rgba(255,255,255,0.65)',
     borderRadius: 'var(--radius-md)',
     borderLeft: '3px solid var(--accent)',
     fontSize: 'var(--text-xs)',
@@ -231,10 +260,76 @@ const styles: Record<string, React.CSSProperties> = {
   statusEntry: {
     marginBottom: 'var(--space-3)',
     padding: 'var(--space-4)',
-    background: 'var(--neon-b-wash)',
+    background: 'var(--accent-subtle)',
     borderRadius: 'var(--radius-md)',
-    borderLeft: '3px solid var(--neon-b)',
+    borderLeft: '3px solid var(--accent)',
     animation: 'slideInFade 240ms ease-out both',
+  },
+  probeList: {
+    listStyle: 'none',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 'var(--space-4)',
+    margin: '0 0 var(--space-5)',
+    padding: 0,
+  },
+  probeActive: {
+    display: 'flex',
+    gap: 'var(--space-3)',
+    alignItems: 'flex-start',
+    color: 'var(--ink)',
+    fontSize: 'var(--text-sm)',
+  },
+  probeIdle: {
+    display: 'flex',
+    gap: 'var(--space-3)',
+    alignItems: 'flex-start',
+    color: 'var(--ink-tertiary)',
+    fontSize: 'var(--text-sm)',
+  },
+  probeDot: {
+    width: 10,
+    height: 10,
+    marginTop: 4,
+    borderRadius: '50%',
+    background: 'var(--neon-teal)',
+    boxShadow: '0 0 0 4px rgba(20, 184, 166, 0.2), 0 0 12px var(--neon-glow)',
+    flexShrink: 0,
+  },
+  probeRing: {
+    width: 10,
+    height: 10,
+    marginTop: 4,
+    borderRadius: '50%',
+    border: '1.5px solid var(--border-strong)',
+    flexShrink: 0,
+  },
+  probeHint: {
+    display: 'block',
+    fontSize: '11px',
+    color: 'var(--ink-muted)',
+    marginTop: 2,
+  },
+  thinking: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    paddingTop: 'var(--space-4)',
+    borderTop: '1px solid var(--border-subtle)',
+    fontSize: '12px',
+    color: 'var(--ink-secondary)',
+    margin: 0,
+  },
+  thinkingSpark: {
+    width: 6,
+    height: 6,
+    borderRadius: '50%',
+    background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-magenta))',
+    boxShadow: '0 0 8px var(--neon-glow)',
+  },
+  thinkingDots: {
+    animation: 'thinkingPulse 1.4s ease-in-out infinite',
+    letterSpacing: '0.12em',
   },
   logHeader: {
     display: 'flex',
@@ -256,7 +351,7 @@ const styles: Record<string, React.CSSProperties> = {
   entryEyebrow: {
     display: 'block',
     marginBottom: 'var(--space-1)',
-    color: 'var(--neon-b-ink)',
+    color: 'var(--accent)',
     fontSize: '10px',
     fontWeight: 600,
     letterSpacing: '0.1em',
@@ -318,7 +413,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '4px 7px',
     borderRadius: '999px',
     background: 'var(--surface)',
-    color: 'var(--neon-b-ink)',
+    color: 'var(--accent)',
     fontSize: '10px',
     fontWeight: 600,
     textTransform: 'capitalize',

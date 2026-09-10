@@ -11,15 +11,8 @@ export default function StageCaption() {
   );
 
   if (!latestEvent) {
-    return (
-      <div style={styles.caption}>
-        <span style={styles.eyebrow}>The stage is ready</span>
-        <strong style={styles.headline}>Waiting for an agent to begin</strong>
-        <span style={styles.supporting}>
-          Scan the pass to watch every decision unfold.
-        </span>
-      </div>
-    );
+    // Keep the stage clean like the product shot until something happens
+    return null;
   }
 
   if (latestEvent.kind === 'status') {
@@ -64,18 +57,18 @@ const styles: Record<string, React.CSSProperties> = {
     right: 'var(--space-5)',
     bottom: 'var(--space-5)',
     zIndex: 2,
-    padding: 'var(--space-4) var(--space-5)',
-    border: '1px solid rgba(255, 255, 255, 0.8)',
-    borderRadius: 'var(--radius-lg)',
-    background: 'rgba(255, 255, 255, 0.86)',
-    boxShadow: '0 10px 34px rgba(26, 26, 26, 0.10)',
-    backdropFilter: 'blur(16px)',
+    padding: 'var(--space-3) var(--space-4)',
+    border: '1px solid rgba(255, 255, 255, 0.7)',
+    borderRadius: 'var(--radius-md)',
+    background: 'rgba(255, 255, 255, 0.82)',
+    boxShadow: 'var(--shadow-sm)',
+    backdropFilter: 'blur(12px)',
     animation: 'captionReveal 240ms ease-out both',
   },
   eyebrow: {
     display: 'block',
     marginBottom: 'var(--space-1)',
-    color: 'var(--neon-a-ink)',
+    color: 'var(--accent)',
     fontSize: '10px',
     fontWeight: 600,
     letterSpacing: '0.12em',

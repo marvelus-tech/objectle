@@ -69,7 +69,7 @@ export default function StageEffects() {
         }}>
           <span style={{
             ...styles.actor,
-            background: caption.actor === 'agent' ? 'var(--neon-a-ink)' : 'var(--ink-secondary)',
+            background: caption.actor === 'agent' ? 'var(--accent)' : 'var(--ink-secondary)',
           }}>
             {caption.actor === 'agent' ? 'Agent' : 'You'}
           </span>
@@ -80,7 +80,7 @@ export default function StageEffects() {
   );
 }
 
-const CONFETTI_COLORS = ['var(--neon-a)', 'var(--neon-b)', 'var(--success)', 'var(--clay-mid)', 'var(--ink)'];
+const CONFETTI_COLORS = ['var(--accent)', 'var(--success)', 'var(--clay-mid)', 'var(--accent-border)', 'var(--ink)'];
 
 function Confetti() {
   const count = 56;
@@ -141,7 +141,8 @@ const styles: Record<string, React.CSSProperties> = {
     width: '28px',
     height: '28px',
     borderStyle: 'solid',
-    borderColor: 'var(--neon-a)',
+    borderColor: 'var(--neon-cyan)',
+    boxShadow: '0 0 8px var(--neon-glow)',
   },
   confettiLayer: {
     position: 'absolute',

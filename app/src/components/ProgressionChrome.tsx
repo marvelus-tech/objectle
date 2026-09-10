@@ -75,10 +75,11 @@ export default function ProgressionChrome() {
 
 const styles: Record<string, React.CSSProperties> = {
   container: {
-    background: 'var(--surface)',
-    borderRadius: 'var(--radius-xl)',
+    background: 'var(--glass)',
+    backdropFilter: 'blur(12px)',
+    borderRadius: 'var(--radius-lg)',
     padding: 'var(--space-5)',
-    border: `1px solid var(--border-subtle)`,
+    border: '1px solid var(--border-subtle)',
     boxShadow: 'var(--shadow-sm)',
   },
   section: {
@@ -111,18 +112,17 @@ const styles: Record<string, React.CSSProperties> = {
   revealBar: {
     position: 'relative' as const,
     height: '32px',
-    background: 'var(--info-bg)',
+    background: 'var(--surface)',
     borderRadius: 'var(--radius-md)',
     overflow: 'hidden',
-    border: `1px solid var(--border-subtle)`,
+    border: `1px solid var(--border)`,
   },
   revealFill: {
     position: 'absolute' as const,
     top: 0,
     left: 0,
     height: '100%',
-    background: 'var(--prism-line)',
-    opacity: 0.55,
+    background: 'var(--accent)',
     transition: 'width 0.4s ease',
   },
   revealText: {
