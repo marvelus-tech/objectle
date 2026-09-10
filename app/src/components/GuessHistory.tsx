@@ -6,39 +6,16 @@ import { useGameStore } from '../lib/store';
  */
 export default function GuessHistory() {
   const guesses = useGameStore(state => state.guesses);
-  const attempts = (
-    <div style={styles.attempts}>
-      <span style={styles.attemptsLabel}>Attempts</span>
-      <span style={styles.dots} aria-hidden="true">
-        {Array.from({ length: 6 }, (_, index) => (
-          <span
-            key={index}
-            style={{
-              ...styles.dot,
-              background: index < guesses.length ? 'var(--accent)' : 'transparent',
-              borderColor: index < guesses.length ? 'var(--accent)' : 'var(--border-strong)',
-            }}
-          />
-        ))}
-      </span>
-      <span style={styles.attemptsCount}>{guesses.length} / 6</span>
-    </div>
-  );
-  
+
+  // Attempts meter lives in AttemptsGrid (prototype left rail). Stay quiet until first guess.
   if (guesses.length === 0) {
-    return (
-      <div style={styles.empty}>
-        {attempts}
-        <p style={styles.emptyText}>No guesses yet. Start by examining the object.</p>
-      </div>
-    );
+    return null;
   }
-  
+
   return (
     <div style={styles.container}>
       <div style={styles.headingRow}>
         <h3 style={styles.heading}>Guess history</h3>
-        {attempts}
       </div>
       <div style={styles.list}>
         {guesses.slice().reverse().map((guess, i) => {

@@ -103,6 +103,43 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Soft paper grain matching the prototype field */
+.paper-field {
+  background-color: var(--field);
+  background-image:
+    radial-gradient(rgba(26, 26, 26, 0.035) 0.6px, transparent 0.7px),
+    linear-gradient(180deg, #F9F6F0 0%, var(--field) 48%, #F3EFE7 100%);
+  background-size: 3px 3px, 100% 100%;
+}
+
+.prototype-top {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.85fr) minmax(420px, 1.35fr) minmax(280px, 0.95fr);
+  gap: var(--space-8);
+  max-width: 1440px;
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--space-5) var(--space-8) var(--space-2);
+}
+
+.viewer-controls-dock {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  z-index: 4;
+  pointer-events: auto;
+}
+
+.guess-send:disabled {
+  opacity: 0.35;
+}
+
+.guess-history-compact {
+  max-height: 280px;
+  overflow: auto;
+}
+
 #root {
   width: 100vw;
   height: 100vh;
@@ -423,7 +460,16 @@ a:active {
 }
 
 @media (max-width: 1100px) {
-  .theater-main {
+  .prototype-top {
+    grid-template-columns: 1fr;
+    padding: var(--space-4) var(--space-5) 0;
+  }
+
+  .prototype-brand-spacer {
+    display: none;
+  }
+
+  .theater-main.prototype-grid {
     grid-template-columns: 1fr !important;
     padding: var(--space-5) !important;
   }
@@ -433,24 +479,26 @@ a:active {
   }
 
   .side-rail {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) minmax(320px, 0.7fr);
-    align-items: start;
+    display: flex !important;
+  }
+
+  .left-rail {
+    order: 1;
+  }
+
+  .stage-column {
+    order: 0;
+  }
+
+  .side-rail {
+    order: 2;
   }
 }
 
 @media (max-width: 760px) {
-  .theater-header {
-    padding-top: var(--space-12) !important;
-  }
-
-  .theater-main {
+  .theater-main.prototype-grid {
     gap: var(--space-5) !important;
     padding: var(--space-3) !important;
-  }
-
-  .side-rail {
-    display: flex !important;
   }
 
   .viewer-stage {
@@ -458,8 +506,20 @@ a:active {
     min-height: 360px;
   }
 
-  .theater-header-meta {
-    display: none !important;
+  .pass-card {
+    grid-template-columns: auto 1fr !important;
+  }
+
+  .pass-card button {
+    grid-column: 1 / -1;
+    flex-direction: row !important;
+    justify-content: center;
+  }
+
+  .prototype-footer {
+    flex-direction: column;
+    align-items: flex-start !important;
+    padding: var(--space-5) var(--space-3) !important;
   }
 
   .agent-panel-shell {

@@ -4,175 +4,128 @@ import { callWebMCPTool } from '../lib/webmcp';
 import { countWrong, maxZoomFor } from '../../../shared/progression';
 
 /**
- * Control panel for rotating and zooming the 3D object
- * Implements GeoGuessr-style verb gating
- *
- * Buttons run the same tools agents use, so host actions show up in the
- * timeline and are visible to connected agents via read_view.
+ * Compact stage controls matching the prototype: zoom rail + rotate nudge.
+ * Overlays the bottom of the prism frame.
  */
 export default function ViewerControls() {
   const zoomLevel = useGameStore(state => state.zoomLevel);
   const revealTier = useGameStore(state => state.revealTier);
   const guesses = useGameStore(state => state.guesses);
-  
-  const rotate = (axis: 'x' | 'y' | 'z', degrees: number) => void callWebMCPTool('rotate_object', { axis, degrees });
+
+  const rotate = (axis: 'x' | 'y' | 'z', degrees: number) =>
+    void callWebMCPTool('rotate_object', { axis, degrees });
   const zoom = (level: number) => void callWebMCPTool('zoom', { level });
-  
-  // Gating: rotation is always free, zoom unlocks one level per wrong guess
-  const canRotate = true;
+
   const maxZoom = maxZoomFor(countWrong(guesses));
-  const rotationStep = revealTier >= 2 ? 30 : 15; // Larger steps when more revealed
-  
+  const rotationStep = revealTier >= 2 ? 30 : 15;
+
   return (
-    <div style={styles.container}>
-      <div style={styles.section}>
-        <h3 style={styles.heading}>Rotate Object</h3>
-        <div style={styles.buttonGrid}>
-          <button
-            onClick={() => rotate('y', -rotationStep)}
-            className="btn-ghost"
-            style={styles.button}
-            disabled={!canRotate}
-            title="Rotate left"
-          >
-            ← Left
-          </button>
-          <button
-            onClick={() => rotate('y', rotationStep)}
-            className="btn-ghost"
-            style={styles.button}
-            disabled={!canRotate}
-            title="Rotate right"
-          >
-            Right →
-          </button>
-          <button
-            onClick={() => rotate('x', -rotationStep)}
-            className="btn-ghost"
-            style={styles.button}
-            disabled={!canRotate}
-            title="Rotate up"
-          >
-            ↑ Up
-          </button>
-          <button
-            onClick={() => rotate('x', rotationStep)}
-            className="btn-ghost"
-            style={styles.button}
-            disabled={!canRotate}
-            title="Rotate down"
-          >
-            Down ↓
-          </button>
-        </div>
-      </div>
-      
-      <div style={styles.section}>
-        <h3 style={styles.heading}>Zoom Level</h3>
-        <div style={styles.zoomControls}>
-          <button
-            onClick={() => zoom(zoomLevel - 1)}
-            className="btn-ghost"
-            style={styles.button}
-            disabled={zoomLevel <= 0}
-            title="Zoom out"
-          >
-            -
-          </button>
-          <span style={styles.zoomDisplay}>{zoomLevel + 1} / {maxZoom + 1}</span>
-          <button
-            onClick={() => zoom(zoomLevel + 1)}
-            className="btn-ghost"
-            style={styles.button}
-            disabled={zoomLevel >= maxZoom}
-            title="Zoom in"
-          >
-            +
-          </button>
-        </div>
-        {zoomLevel >= maxZoom && maxZoom < 3 && (
-          <p style={styles.hint}>
-            More zoom unlocks after wrong guesses
-          </p>
-        )}
-      </div>
-      
-      <div style={styles.info}>
-        <p style={styles.infoText}>
-          Wrong guesses: {guesses.filter(g => !g.correct).length} / 6
-        </p>
-        <p style={styles.infoText}>
-          Each wrong guess unlocks more detail and zoom
-        </p>
-      </div>
+    <div className="viewer-controls" style={styles.container}>
+      <button
+        type="button"
+        className="btn-ghost"
+        style={styles.iconBtn}
+        onClick={() => zoom(zoomLevel - 1)}
+        disabled={zoomLevel <= 0}
+        title="Zoom out"
+        aria-label="Zoom out"
+      >
+        −
+      </button>
+
+      <input
+        type="range"
+        min={0}
+        max={Math.max(maxZoom, 1)}
+        step={1}
+        value={Math.min(zoomLevel, maxZoom)}
+        onChange={e => zoom(Number(e.target.value))}
+        style={styles.slider}
+        aria-label={`Zoom level ${zoomLevel} of ${maxZoom}`}
+      />
+
+      <button
+        type="button"
+        className="btn-ghost"
+        style={styles.iconBtn}
+        onClick={() => zoom(zoomLevel + 1)}
+        disabled={zoomLevel >= maxZoom}
+        title="Zoom in"
+        aria-label="Zoom in"
+      >
+        +
+      </button>
+
+      <button
+        type="button"
+        className="btn-ghost"
+        style={styles.rotateBtn}
+        onClick={() => rotate('y', rotationStep)}
+        title="Rotate right"
+        aria-label="Rotate object"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M20 12a8 8 0 1 1-2.34-5.66"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
+          <path
+            d="M20 4v5h-5"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
     </div>
   );
 }
 
 const styles: Record<string, React.CSSProperties> = {
   container: {
-    padding: 'var(--space-5)',
-    background: 'var(--surface)',
-    borderRadius: 'var(--radius-xl)',
-    boxShadow: 'var(--shadow-sm)',
-    border: `1px solid var(--border-subtle)`,
-  },
-  section: {
-    marginBottom: 'var(--space-5)',
-  },
-  heading: {
-    fontSize: 'var(--text-sm)',
-    fontFamily: 'var(--font-ui)',
-    fontWeight: 600,
-    marginBottom: 'var(--space-3)',
-    color: 'var(--ink)',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.05em',
-  },
-  buttonGrid: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: 'var(--space-2)',
-  },
-  button: {
-    padding: 'var(--space-3) var(--space-4)',
-    borderRadius: 'var(--radius-md)',
-    fontSize: 'var(--text-sm)',
-    fontFamily: 'var(--font-ui)',
-    fontWeight: 500,
-    cursor: 'pointer',
-  },
-  zoomControls: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 'var(--space-4)',
+    gap: '10px',
+    padding: '10px 14px',
+    background: 'rgba(255,255,255,0.82)',
+    backdropFilter: 'blur(8px)',
+    borderRadius: '999px',
+    border: '1px solid var(--border-subtle)',
+    boxShadow: 'var(--shadow-sm)',
   },
-  zoomDisplay: {
-    fontSize: 'var(--text-lg)',
-    fontFamily: 'var(--font-ui)',
+  iconBtn: {
+    width: '28px',
+    height: '28px',
+    display: 'grid',
+    placeItems: 'center',
+    borderRadius: '50%',
+    padding: 0,
+    fontSize: '16px',
     fontWeight: 600,
-    fontVariantNumeric: 'tabular-nums',
-    minWidth: '60px',
-    textAlign: 'center' as const,
+    lineHeight: 1,
     color: 'var(--ink)',
+    background: 'transparent',
+    border: 'none',
   },
-  hint: {
-    fontSize: 'var(--text-xs)',
-    fontFamily: 'var(--font-ui)',
-    color: 'var(--ink-tertiary)',
-    marginTop: 'var(--space-2)',
-    fontStyle: 'italic' as const,
+  slider: {
+    width: '140px',
+    accentColor: 'var(--accent)',
+    cursor: 'pointer',
   },
-  info: {
-    borderTop: `1px solid var(--border-subtle)`,
-    paddingTop: 'var(--space-4)',
-    marginTop: 'var(--space-2)',
-  },
-  infoText: {
-    fontSize: 'var(--text-sm)',
-    fontFamily: 'var(--font-ui)',
-    color: 'var(--ink-secondary)',
-    marginBottom: 'var(--space-2)',
+  rotateBtn: {
+    width: '32px',
+    height: '32px',
+    display: 'grid',
+    placeItems: 'center',
+    borderRadius: '50%',
+    padding: 0,
+    color: 'var(--ink)',
+    background: 'var(--surface)',
+    border: '1px solid var(--border)',
+    marginLeft: '4px',
   },
 };

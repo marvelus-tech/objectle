@@ -201,7 +201,6 @@ function DollyCamera() {
 }
 
 export default function ObjectViewer({ visualProfile }: ObjectViewerProps) {
-  const zoomLevel = useGameStore(state => state.zoomLevel);
   const revealTier = useGameStore(state => state.revealTier);
 
   return (
@@ -243,24 +242,7 @@ export default function ObjectViewer({ visualProfile }: ObjectViewerProps) {
         </mesh>
       </Canvas>
 
-      <div style={{
-        position: 'absolute',
-        top: 'calc(var(--space-6) + 6px)',
-        right: 'calc(var(--space-6) + 6px)',
-        background: 'rgba(255, 255, 255, 0.86)',
-        backdropFilter: 'blur(10px)',
-        padding: 'var(--space-2) var(--space-3)',
-        borderRadius: '999px',
-        fontSize: 'var(--text-xs)',
-        fontFamily: 'var(--font-ui)',
-        fontWeight: 500,
-        letterSpacing: '0.02em',
-        color: 'var(--ink-secondary)',
-        boxShadow: 'var(--shadow-sm)',
-        border: '1px solid rgba(255, 255, 255, 0.9)',
-      }}>
-        Zoom {zoomLevel + 1}/4 · Reveal {revealTier + 1}/4
-      </div>
+      {/* Caption stays for theater narration; zoom pill removed to match prototype. */}
       <StageCaption />
     </div>
   );
