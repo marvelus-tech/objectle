@@ -86,6 +86,46 @@ const viewDescriptions = {
 
 // API endpoint for the Worker
 const WORKER_API = process.env.WORKER_API || 'http://localhost:8787/api';
+const ROOM_ID = process.env.OBJECTLE_ROOM_ID || process.env.ROOM_ID || '';
+
+async function publishRoomEvent(event: Record<string, unknown>) {
+  if (!ROOM_ID) return;
+
+  const response = await fetch(
+    `${WORKER_API}/rooms/${encodeURIComponent(ROOM_ID)}/events`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'event', event }),
+    },
+  );
+
+  if (!response.ok) {
+    console.error(`Could not publish theater event: ${response.status}`);
+  }
+}
+
+async function publishToolResult(
+  tool: string,
+  args: Record<string, unknown>,
+  result: string,
+  success: boolean,
+  detail?: Record<string, unknown>,
+) {
+  await publishRoomEvent({
+    id: crypto.randomUUID(),
+    kind: 'tool',
+    timestamp: Date.now(),
+    source: 'agent',
+    tool,
+    phase: 'completed',
+    args,
+    result,
+    success,
+    durationMs: 0,
+    detail,
+  });
+}
 
 const server = new Server(
   {
@@ -207,11 +247,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const axisKey = `rotation${axis.toUpperCase()}` as 'rotationX' | 'rotationY' | 'rotationZ';
         gameState[axisKey] += degrees;
         
+        const result = `Rotated object ${degrees}° around ${axis}-axis. Current rotation: X=${gameState.rotationX}°, Y=${gameState.rotationY}°, Z=${gameState.rotationZ}°`;
+        await publishToolResult('rotate_object', { axis, degrees }, result, true);
+
         return {
           content: [
             {
               type: 'text',
-              text: `Rotated object ${degrees}° around ${axis}-axis. Current rotation: X=${gameState.rotationX}°, Y=${gameState.rotationY}°, Z=${gameState.rotationZ}°`,
+              text: result,
             },
           ],
         };
@@ -222,23 +265,27 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const maxZoom = Math.min(gameState.revealTier + 1, 3);
         
         if (level > maxZoom) {
+          const result = `Zoom level ${level} is locked. Maximum available: ${maxZoom}. Make more guesses to unlock higher zoom levels.`;
+          await publishToolResult('zoom', { level }, result, false);
           return {
             content: [
               {
                 type: 'text',
-                text: `Zoom level ${level} is locked. Maximum available: ${maxZoom}. Make more guesses to unlock higher zoom levels.`,
+                text: result,
               },
             ],
           };
         }
         
         gameState.zoomLevel = level;
+        const result = `Zoom set to level ${level}/3. Camera distance adjusted.`;
+        await publishToolResult('zoom', { level }, result, true);
         
         return {
           content: [
             {
               type: 'text',
-              text: `Zoom set to level ${level}/3. Camera distance adjusted.`,
+              text: result,
             },
           ],
         };
@@ -249,11 +296,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const rotation = `The object is currently rotated X=${gameState.rotationX}°, Y=${gameState.rotationY}°, Z=${gameState.rotationZ}°.`;
         const zoom = `Zoom level: ${gameState.zoomLevel}/3.`;
         
+        const result = `${desc.detailed}\n\n${rotation}\n${zoom}\n\nGuesses made: ${gameState.guesses.length}/6`;
+        await publishToolResult('read_view', {}, result, true);
+
         return {
           content: [
             {
               type: 'text',
-              text: `${desc.detailed}\n\n${rotation}\n${zoom}\n\nGuesses made: ${gameState.guesses.length}/6`,
+              text: result,
             },
           ],
         };
@@ -304,6 +354,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             ? (input.confidence as PublishedStatus['confidence'])
             : undefined,
         };
+        await publishRoomEvent({
+          id: crypto.randomUUID(),
+          kind: 'status',
+          timestamp: Date.now(),
+          source: 'agent',
+          ...gameState.lastStatus,
+        });
 
         return {
           content: [
@@ -319,7 +376,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const { name: guessName } = args as { name: string };
         
         if (!gameState.playerId) {
-          gameState.playerId = `agent_${Date.now()}`;
+          gameState.playerId = ROOM_ID ? `room_${ROOM_ID}` : `agent_${Date.now()}`;
         }
         
         // Call the Worker API to check the guess
@@ -371,6 +428,20 @@ Scale: ${result.facets.scale.value} ${result.facets.scale.match ? '✓' : '✗'}
               message += '\n\nGame Over - No guesses remaining.';
             }
           }
+
+          await publishToolResult(
+            'submit_guess',
+            { name: guessName },
+            message,
+            true,
+            {
+              guess: guessName,
+              guessNumber: result.guessNumber,
+              correct: result.correct,
+              remaining: Math.max(0, 6 - result.guessNumber),
+              facets: result.facets,
+            },
+          );
           
           return {
             content: [
@@ -381,11 +452,18 @@ Scale: ${result.facets.scale.value} ${result.facets.scale.match ? '✓' : '✗'}
             ],
           };
         } catch (error) {
+          const errorMessage = `Error checking guess: ${error}. Make sure the Worker is running at ${WORKER_API}`;
+          await publishToolResult(
+            'submit_guess',
+            { name: guessName },
+            errorMessage,
+            false,
+          );
           return {
             content: [
               {
                 type: 'text',
-                text: `Error checking guess: ${error}. Make sure the Worker is running at ${WORKER_API}`,
+                text: errorMessage,
               },
             ],
           };

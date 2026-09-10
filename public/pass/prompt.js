@@ -8,11 +8,14 @@
 
   function gameUrl() {
     if (typeof document === "undefined" || !document.location) return LIVE_GAME;
-    var href = document.location.href.split("#")[0];
-    if (/pass\/?/i.test(href)) {
-      return href.replace(/pass\/?.*$/i, "") || LIVE_GAME;
+    try {
+      var url = new URL(document.location.href);
+      url.hash = "";
+      url.pathname = url.pathname.replace(/pass\/?$/i, "");
+      return url.toString();
+    } catch (error) {
+      return LIVE_GAME;
     }
-    return href;
   }
 
   function apiUrl() {
@@ -24,10 +27,10 @@
     var api = apiUrl();
     return (
       "You are playing Objectle. Your human is watching the game on their host screen.\n\n" +
-      "Game URL (open this): " + game + "\n" +
+      "Shared theater URL (open this): " + game + "\n" +
       "Worker API: " + api + "\n\n" +
       "How to play:\n" +
-      "1. Open the game URL above in your browser.\n" +
+      "1. Open the shared theater URL above. Keep its room parameter so your actions appear on the host screen.\n" +
       "2. Use the WebMCP / page modelContext tools to play:\n" +
       "   - read_view() - See current 3D view description\n" +
       "   - rotate_object(axis, degrees) - Rotate for different angles (x/y/z, ±15-45°)\n" +

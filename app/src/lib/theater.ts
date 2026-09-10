@@ -10,6 +10,7 @@ export interface FacetDetail {
 
 export interface GuessDetail {
   guess: string;
+  guessNumber: number;
   correct: boolean;
   remaining: number;
   facets: {

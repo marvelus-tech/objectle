@@ -50,6 +50,7 @@ export default function GuessInput() {
         true,
         {
           guess,
+          guessNumber: result.guessNumber,
           correct: result.correct,
           remaining: Math.max(0, 6 - result.guessNumber),
           facets: result.facets,

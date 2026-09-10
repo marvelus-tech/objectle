@@ -3,9 +3,25 @@
  * Cloudflare Worker backend for daily 3D object guessing game
  */
 
-interface Env {
+import { DurableObject } from 'cloudflare:workers';
+
+export interface Env {
   DB: D1Database;
   ENVIRONMENT: string;
+  THEATER_ROOMS: DurableObjectNamespace<TheaterRoom>;
+}
+
+interface TheaterEventPayload {
+  id: string;
+  kind: 'tool' | 'status';
+  timestamp: number;
+  source: 'agent' | 'human' | 'panel' | 'remote';
+  [key: string]: unknown;
+}
+
+interface RoomMessage {
+  type: 'event';
+  event: TheaterEventPayload;
 }
 
 interface DailyChallenge {
@@ -67,6 +83,33 @@ export default {
         return handleGetLeaderboard(env);
       }
 
+      if (path === '/api/rooms' && request.method === 'POST') {
+        return Response.json(
+          { roomId: crypto.randomUUID() },
+          { headers: corsHeaders },
+        );
+      }
+
+      const roomRoute = matchRoomRoute(path);
+      if (roomRoute?.action === 'watch' && request.method === 'GET') {
+        const room = env.THEATER_ROOMS.getByName(roomRoute.roomId);
+        return room.fetch(request);
+      }
+
+      if (roomRoute?.action === 'events' && request.method === 'POST') {
+        const body = await request.json<RoomMessage>();
+        if (body.type !== 'event' || !isTheaterEvent(body.event)) {
+          return Response.json(
+            { error: 'Invalid theater event' },
+            { status: 400, headers: corsHeaders },
+          );
+        }
+
+        const room = env.THEATER_ROOMS.getByName(roomRoute.roomId);
+        await room.publish(body.event);
+        return Response.json({ accepted: true }, { headers: corsHeaders });
+      }
+
       return new Response('Not Found', { status: 404, headers: corsHeaders });
     } catch (error) {
       console.error('Worker error:', error);
@@ -76,7 +119,101 @@ export default {
       });
     }
   },
-};
+} satisfies ExportedHandler<Env>;
+
+function matchRoomRoute(path: string) {
+  const match = path.match(/^\/api\/rooms\/([a-zA-Z0-9-]{8,64})\/(watch|events)$/);
+  if (!match) return null;
+  return { roomId: match[1], action: match[2] as 'watch' | 'events' };
+}
+
+function isTheaterEvent(value: unknown): value is TheaterEventPayload {
+  if (!value || typeof value !== 'object') return false;
+  const event = value as Record<string, unknown>;
+  return (
+    typeof event.id === 'string' &&
+    event.id.length <= 100 &&
+    (event.kind === 'tool' || event.kind === 'status') &&
+    typeof event.timestamp === 'number' &&
+    ['agent', 'human', 'panel', 'remote'].includes(String(event.source))
+  );
+}
+
+export class TheaterRoom extends DurableObject<Env> {
+  private static readonly historyKey = 'events';
+
+  async fetch(request: Request): Promise<Response> {
+    if (request.headers.get('Upgrade') !== 'websocket') {
+      return new Response('Expected WebSocket', { status: 426 });
+    }
+
+    const pair = new WebSocketPair();
+    const [client, server] = Object.values(pair);
+    this.ctx.acceptWebSocket(server);
+
+    const events =
+      (await this.ctx.storage.get<TheaterEventPayload[]>(
+        TheaterRoom.historyKey,
+      )) ?? [];
+    server.send(JSON.stringify({ type: 'history', events }));
+
+    return new Response(null, { status: 101, webSocket: client });
+  }
+
+  async publish(event: TheaterEventPayload): Promise<void> {
+    if (!isTheaterEvent(event)) throw new Error('Invalid theater event');
+    await this.recordAndBroadcast(event);
+  }
+
+  async webSocketMessage(
+    sender: WebSocket,
+    message: string | ArrayBuffer,
+  ): Promise<void> {
+    if (typeof message !== 'string' || message.length > 16_384) return;
+
+    try {
+      const body = JSON.parse(message) as RoomMessage;
+      if (body.type !== 'event' || !isTheaterEvent(body.event)) return;
+      await this.recordAndBroadcast(body.event, sender);
+    } catch {
+      sender.send(JSON.stringify({ type: 'error', error: 'Invalid message' }));
+    }
+  }
+
+  async webSocketClose(
+    webSocket: WebSocket,
+    code: number,
+    reason: string,
+  ): Promise<void> {
+    webSocket.close(code, reason);
+  }
+
+  async webSocketError(webSocket: WebSocket): Promise<void> {
+    webSocket.close(1011, 'Room connection error');
+  }
+
+  private async recordAndBroadcast(
+    event: TheaterEventPayload,
+    sender?: WebSocket,
+  ) {
+    const history =
+      (await this.ctx.storage.get<TheaterEventPayload[]>(
+        TheaterRoom.historyKey,
+      )) ?? [];
+    const events = [...history.filter(item => item.id !== event.id), event].slice(
+      -60,
+    );
+
+    await this.ctx.storage.put(TheaterRoom.historyKey, events);
+
+    const payload = JSON.stringify({ type: 'event', event });
+    for (const client of this.ctx.getWebSockets()) {
+      if (client !== sender && client.readyState === WebSocket.OPEN) {
+        client.send(payload);
+      }
+    }
+  }
+}
 
 /**
  * Get today's daily challenge

@@ -13,6 +13,7 @@ import HypothesisBoard from './components/HypothesisBoard';
 import { useGameStore } from './lib/store';
 import { api } from './lib/api';
 import { registerWebMCPTools } from './lib/webmcp';
+import { initializeTheaterRoom, useRoomStore } from './lib/room';
 
 export default function App() {
   const initGame = useGameStore(state => state.initGame);
@@ -21,11 +22,16 @@ export default function App() {
   const error = useGameStore(state => state.error);
   const setLoading = useGameStore(state => state.setLoading);
   const setError = useGameStore(state => state.setError);
+  const setRoomConnection = useRoomStore(state => state.setConnection);
   
   // Load daily challenge and register WebMCP tools on mount
   useEffect(() => {
     loadDailyChallenge();
     registerWebMCPTools();
+    void initializeTheaterRoom().catch(error => {
+      console.warn('Theater room unavailable:', error);
+      setRoomConnection('offline');
+    });
   }, []);
   
   const loadDailyChallenge = async () => {

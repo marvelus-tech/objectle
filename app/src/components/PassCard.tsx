@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import QRCode from 'qrcode';
+import { useRoomStore } from '../lib/room';
 
 /**
  * Pass to Agent card - Always visible for room demos
@@ -6,10 +8,31 @@ import React, { useState } from 'react';
  */
 export default function PassCard() {
   const [copied, setCopied] = useState(false);
+  const [qrSource, setQrSource] = useState('');
+  const roomId = useRoomStore(state => state.roomId);
+  const connection = useRoomStore(state => state.connection);
+  const roomQuery = roomId ? `?room=${encodeURIComponent(roomId)}` : '';
+  const gameUrl = `https://marvelus-tech.github.io/objectle/${roomQuery}`;
+  const passUrl = `https://marvelus-tech.github.io/objectle/pass/${roomQuery}`;
+
+  useEffect(() => {
+    let active = true;
+    void QRCode.toDataURL(passUrl, {
+      width: 320,
+      margin: 2,
+      color: { dark: '#1A1A1A', light: '#FFFFFF' },
+      errorCorrectionLevel: 'M',
+    }).then(source => {
+      if (active) setQrSource(source);
+    });
+    return () => {
+      active = false;
+    };
+  }, [passUrl]);
 
   const agentPrompt = `You are playing Objectle. Your human is watching the game on their host screen.
 
-Game URL (open this): https://marvelus-tech.github.io/objectle/
+Game URL (open this): ${gameUrl}
 Worker API: https://objectle-worker-demo.marvelus.workers.dev/api
 
 How to play:
@@ -44,6 +67,7 @@ Play now!`;
     <div style={styles.container}>
       <div style={styles.header}>
         <span style={styles.title}>Pass to agent</span>
+        <span style={styles.connection}>{connection}</span>
       </div>
       
       <div style={styles.content}>
@@ -53,8 +77,8 @@ Play now!`;
         
         <div style={styles.qrSection}>
           <img 
-            src={`${import.meta.env.BASE_URL}pass/qr.svg`}
-            alt="QR code for agent onboarding" 
+            src={qrSource || `${import.meta.env.BASE_URL}pass/qr.svg`}
+            alt={`QR code for agent onboarding${roomId ? ` in room ${roomId}` : ''}`}
             style={styles.qrLarge}
           />
           <p style={styles.qrLabel}>Scan to hand to your agent</p>
@@ -65,7 +89,7 @@ Play now!`;
             {copied ? '✓ Copied!' : 'Copy prompt'}
           </button>
           <a 
-            href={`${import.meta.env.BASE_URL}pass/`}
+            href={`${import.meta.env.BASE_URL}pass/${roomQuery}`}
             target="_blank" 
             rel="noopener noreferrer"
             style={styles.passLink}
@@ -100,6 +124,9 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 'var(--space-4) var(--space-5)',
     background: 'var(--accent-subtle)',
     borderBottom: `2px solid var(--accent-border)`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   title: {
     fontSize: 'var(--text-lg)',
@@ -108,6 +135,16 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--accent)',
     textTransform: 'uppercase' as const,
     letterSpacing: '0.05em',
+  },
+  connection: {
+    padding: '4px 8px',
+    borderRadius: '999px',
+    background: 'var(--surface)',
+    color: 'var(--accent)',
+    fontSize: '10px',
+    fontWeight: 600,
+    letterSpacing: '0.06em',
+    textTransform: 'uppercase',
   },
   content: {
     padding: 'var(--space-6)',
