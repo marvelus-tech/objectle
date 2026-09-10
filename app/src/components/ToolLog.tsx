@@ -15,7 +15,7 @@ export default function ToolLog() {
   const [expanded, setExpanded] = useState(true);
 
   return (
-    <div style={styles.container}>
+    <div className="prism-hairline" style={styles.container}>
       <button
         type="button"
         style={styles.header}
@@ -23,10 +23,10 @@ export default function ToolLog() {
         aria-expanded={expanded}
       >
         <span>
-          <span style={styles.eyebrow}>Live director’s log</span>
-          <span style={styles.title}>Agent timeline</span>
+          <span style={styles.eyebrow}>Agent tool timeline</span>
+          <span style={styles.title}>Live director’s log</span>
         </span>
-        <span style={styles.count}>{events.length}</span>
+        <span style={styles.count}>Step {events.length}</span>
       </button>
       
       {expanded && (
@@ -81,7 +81,7 @@ function ToolEntry({ event, index }: { event: ToolTheaterEvent; index: number })
   const [showRaw, setShowRaw] = useState(false);
   const running = event.phase === 'running';
   const accent = running
-    ? 'var(--accent)'
+    ? 'var(--neon-a)'
     : event.success
       ? 'var(--success)'
       : 'var(--error)';
@@ -171,15 +171,16 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'var(--surface)',
     borderRadius: 'var(--radius-xl)',
     boxShadow: 'var(--shadow-md)',
-    border: `2px solid var(--accent)`,
+    border: `1px solid var(--border-subtle)`,
     overflow: 'hidden',
   },
   header: {
     width: '100%',
     border: 0,
+    borderBottom: '1px solid var(--border-subtle)',
     padding: 'var(--space-4) var(--space-5)',
-    background: 'var(--accent)',
-    color: 'white',
+    background: 'var(--surface)',
+    color: 'var(--ink)',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -188,28 +189,29 @@ const styles: Record<string, React.CSSProperties> = {
   eyebrow: {
     display: 'block',
     marginBottom: '2px',
+    color: 'var(--ink-tertiary)',
     fontSize: '10px',
     fontWeight: 600,
     letterSpacing: '0.12em',
     textTransform: 'uppercase',
-    opacity: 0.78,
   },
   title: {
     display: 'block',
     fontSize: 'var(--text-base)',
     fontFamily: 'var(--font-display)',
     fontWeight: 600,
-    letterSpacing: '0.02em',
+    letterSpacing: '0.01em',
   },
   count: {
-    display: 'grid',
-    width: '30px',
-    height: '30px',
-    placeItems: 'center',
-    borderRadius: '50%',
-    background: 'rgba(255, 255, 255, 0.18)',
-    fontSize: 'var(--text-sm)',
+    padding: '4px 10px',
+    borderRadius: '999px',
+    background: 'var(--accent-subtle)',
+    color: 'var(--ink-secondary)',
+    fontSize: '10px',
     fontWeight: 600,
+    letterSpacing: '0.06em',
+    textTransform: 'uppercase',
+    fontVariantNumeric: 'tabular-nums',
   },
   logContainer: {
     maxHeight: '400px',
@@ -229,9 +231,9 @@ const styles: Record<string, React.CSSProperties> = {
   statusEntry: {
     marginBottom: 'var(--space-3)',
     padding: 'var(--space-4)',
-    background: 'var(--accent-subtle)',
+    background: 'var(--neon-b-wash)',
     borderRadius: 'var(--radius-md)',
-    borderLeft: '3px solid var(--accent)',
+    borderLeft: '3px solid var(--neon-b)',
     animation: 'slideInFade 240ms ease-out both',
   },
   logHeader: {
@@ -254,7 +256,7 @@ const styles: Record<string, React.CSSProperties> = {
   entryEyebrow: {
     display: 'block',
     marginBottom: 'var(--space-1)',
-    color: 'var(--accent)',
+    color: 'var(--neon-b-ink)',
     fontSize: '10px',
     fontWeight: 600,
     letterSpacing: '0.1em',
@@ -316,7 +318,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '4px 7px',
     borderRadius: '999px',
     background: 'var(--surface)',
-    color: 'var(--accent)',
+    color: 'var(--neon-b-ink)',
     fontSize: '10px',
     fontWeight: 600,
     textTransform: 'capitalize',

@@ -6,18 +6,40 @@ import { useGameStore } from '../lib/store';
  */
 export default function GuessHistory() {
   const guesses = useGameStore(state => state.guesses);
+  const attempts = (
+    <div style={styles.attempts}>
+      <span style={styles.attemptsLabel}>Attempts</span>
+      <span style={styles.dots} aria-hidden="true">
+        {Array.from({ length: 6 }, (_, index) => (
+          <span
+            key={index}
+            style={{
+              ...styles.dot,
+              background: index < guesses.length ? 'var(--accent)' : 'transparent',
+              borderColor: index < guesses.length ? 'var(--accent)' : 'var(--border-strong)',
+            }}
+          />
+        ))}
+      </span>
+      <span style={styles.attemptsCount}>{guesses.length} / 6</span>
+    </div>
+  );
   
   if (guesses.length === 0) {
     return (
       <div style={styles.empty}>
-        <p style={styles.emptyText}>No guesses yet. Start by examining the object!</p>
+        {attempts}
+        <p style={styles.emptyText}>No guesses yet. Start by examining the object.</p>
       </div>
     );
   }
   
   return (
     <div style={styles.container}>
-      <h3 style={styles.heading}>Guess History</h3>
+      <div style={styles.headingRow}>
+        <h3 style={styles.heading}>Guess history</h3>
+        {attempts}
+      </div>
       <div style={styles.list}>
         {guesses.map((guess) => (
           <div key={guess.guessNumber} style={styles.guessItem}>
@@ -25,8 +47,8 @@ export default function GuessHistory() {
               <span style={styles.guessNumber}>#{guess.guessNumber}</span>
               <span style={{
                 ...styles.guessText,
-                color: guess.correct ? 'var(--success)' : 'var(--error)',
-                fontWeight: guess.correct ? 600 : 400,
+                color: guess.correct ? 'var(--success)' : 'var(--ink)',
+                fontWeight: guess.correct ? 600 : 500,
               }}>
                 {guess.guessText}
               </span>
@@ -65,9 +87,9 @@ function FacetBadge({ label, value, match }: { label: string; value: string; mat
       className={match ? 'facet-chip facet-chip--match' : 'facet-chip'}
       style={{
         ...styles.facetBadge,
-        background: match ? 'var(--success-bg)' : 'var(--error-bg)',
-        borderColor: match ? 'var(--success)' : 'var(--error)',
-        color: match ? 'var(--success)' : 'var(--error)',
+        background: match ? 'var(--success-bg)' : 'var(--info-bg)',
+        borderColor: match ? 'var(--success)' : 'var(--border)',
+        color: match ? 'var(--success)' : 'var(--ink-secondary)',
       }}
     >
       <div style={styles.facetLabel}>{label}</div>
@@ -80,12 +102,50 @@ const styles: Record<string, React.CSSProperties> = {
   container: {
     width: '100%',
   },
+  headingRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 'var(--space-4)',
+    flexWrap: 'wrap' as const,
+    marginBottom: 'var(--space-4)',
+  },
   heading: {
     fontSize: 'var(--text-xl)',
     fontFamily: 'var(--font-display)',
     fontWeight: 600,
-    marginBottom: 'var(--space-4)',
+    margin: 0,
     color: 'var(--ink)',
+  },
+  attempts: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 'var(--space-3)',
+  },
+  attemptsLabel: {
+    fontSize: 'var(--text-xs)',
+    fontFamily: 'var(--font-ui)',
+    fontWeight: 600,
+    color: 'var(--ink-secondary)',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.08em',
+  },
+  dots: {
+    display: 'flex',
+    gap: '6px',
+  },
+  dot: {
+    width: '10px',
+    height: '10px',
+    borderRadius: '50%',
+    border: '1.5px solid',
+    transition: 'background-color 180ms ease-out, border-color 180ms ease-out',
+  },
+  attemptsCount: {
+    fontSize: 'var(--text-xs)',
+    fontFamily: 'var(--font-ui)',
+    color: 'var(--ink-tertiary)',
+    fontVariantNumeric: 'tabular-nums',
   },
   list: {
     display: 'flex',
@@ -93,11 +153,16 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 'var(--space-4)',
   },
   empty: {
-    padding: 'var(--space-8)',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'center',
+    gap: 'var(--space-4)',
+    padding: 'var(--space-6)',
     textAlign: 'center' as const,
-    background: 'var(--info-bg)',
-    borderRadius: 'var(--radius-lg)',
+    background: 'var(--surface)',
+    borderRadius: 'var(--radius-xl)',
     border: `1px solid var(--border-subtle)`,
+    boxShadow: 'var(--shadow-sm)',
   },
   emptyText: {
     color: 'var(--ink-secondary)',

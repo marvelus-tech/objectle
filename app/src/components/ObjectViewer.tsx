@@ -233,24 +233,26 @@ export default function ObjectViewer({ visualProfile }: ObjectViewerProps) {
         {/* Infinity cyclorama backdrop */}
         <mesh position={[0, 0, -8]} receiveShadow>
           <planeGeometry args={[50, 50]} />
-          <meshStandardMaterial color="#EDEDEB" roughness={1} />
+          <meshStandardMaterial color="#F0EEEA" roughness={1} />
         </mesh>
       </Canvas>
       
       {/* Overlay progression badge */}
       <div style={{
         position: 'absolute',
-        top: 'var(--space-3)',
-        right: 'var(--space-3)',
-        background: 'var(--surface)',
+        top: 'calc(var(--space-6) + 6px)',
+        right: 'calc(var(--space-6) + 6px)',
+        background: 'rgba(255, 255, 255, 0.86)',
+        backdropFilter: 'blur(10px)',
         padding: 'var(--space-2) var(--space-3)',
-        borderRadius: 'var(--radius-sm)',
+        borderRadius: '999px',
         fontSize: 'var(--text-xs)',
         fontFamily: 'var(--font-ui)',
         fontWeight: 500,
-        color: 'var(--ink-tertiary)',
+        letterSpacing: '0.02em',
+        color: 'var(--ink-secondary)',
         boxShadow: 'var(--shadow-sm)',
-        border: '1px solid var(--border-subtle)',
+        border: '1px solid rgba(255, 255, 255, 0.9)',
       }}>
         Zoom {zoomLevel + 1}/4 · Reveal {revealTier + 1}/4
       </div>

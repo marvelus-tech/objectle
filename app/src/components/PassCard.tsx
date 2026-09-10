@@ -64,10 +64,18 @@ Play now!`;
   };
 
   return (
-    <div style={styles.container}>
+    <div className="prism-hairline" style={styles.container}>
       <div style={styles.header}>
         <span style={styles.title}>Pass to agent</span>
-        <span style={styles.connection}>{connection}</span>
+        <span
+          style={{
+            ...styles.connection,
+            color: connection === 'connected' ? 'var(--neon-a-ink)' : 'var(--ink-secondary)',
+            background: connection === 'connected' ? 'var(--neon-a-wash)' : 'var(--surface)',
+          }}
+        >
+          {connection}
+        </span>
       </div>
       
       <div style={styles.content}>
@@ -85,13 +93,14 @@ Play now!`;
         </div>
         
         <div style={styles.actions}>
-          <button onClick={handleCopy} style={styles.copyButton}>
-            {copied ? '✓ Copied!' : 'Copy prompt'}
+          <button onClick={handleCopy} className="btn-primary" style={styles.copyButton}>
+            {copied ? 'Copied' : 'Copy prompt'}
           </button>
           <a 
             href={`${import.meta.env.BASE_URL}pass/${roomQuery}`}
             target="_blank" 
             rel="noopener noreferrer"
+            className="btn-ghost"
             style={styles.passLink}
           >
             Open pass page →
@@ -115,15 +124,15 @@ const styles: Record<string, React.CSSProperties> = {
   container: {
     background: 'var(--surface)',
     borderRadius: 'var(--radius-xl)',
-    border: `3px solid var(--accent)`,
+    border: `1px solid var(--border-subtle)`,
     overflow: 'hidden',
     marginBottom: 'var(--space-6)',
     boxShadow: 'var(--shadow-md)',
   },
   header: {
     padding: 'var(--space-4) var(--space-5)',
-    background: 'var(--accent-subtle)',
-    borderBottom: `2px solid var(--accent-border)`,
+    background: 'var(--surface)',
+    borderBottom: `1px solid var(--border-subtle)`,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -132,15 +141,13 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 'var(--text-lg)',
     fontFamily: 'var(--font-display)',
     fontWeight: 600,
-    color: 'var(--accent)',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.05em',
+    color: 'var(--ink)',
+    letterSpacing: '0.01em',
   },
   connection: {
     padding: '4px 8px',
     borderRadius: '999px',
-    background: 'var(--surface)',
-    color: 'var(--accent)',
+    border: '1px solid var(--border-subtle)',
     fontSize: '10px',
     fontWeight: 600,
     letterSpacing: '0.06em',
@@ -164,9 +171,6 @@ const styles: Record<string, React.CSSProperties> = {
   },
   copyButton: {
     padding: 'var(--space-3) var(--space-5)',
-    background: 'var(--accent)',
-    color: 'white',
-    border: 'none',
     borderRadius: 'var(--radius-md)',
     fontSize: 'var(--text-sm)',
     fontFamily: 'var(--font-ui)',
@@ -176,9 +180,6 @@ const styles: Record<string, React.CSSProperties> = {
   passLink: {
     display: 'inline-block',
     padding: 'var(--space-3) var(--space-5)',
-    background: 'transparent',
-    color: 'var(--accent)',
-    border: `2px solid var(--accent)`,
     borderRadius: 'var(--radius-md)',
     fontSize: 'var(--text-sm)',
     fontFamily: 'var(--font-ui)',
@@ -211,7 +212,7 @@ const styles: Record<string, React.CSSProperties> = {
   qrSection: {
     textAlign: 'center' as const,
     padding: 'var(--space-6)',
-    background: 'var(--surface-subtle)',
+    background: '#FFFFFF',
     borderRadius: 'var(--radius-lg)',
     marginBottom: 'var(--space-5)',
     border: `2px solid var(--accent)`,
@@ -227,7 +228,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 'var(--text-base)',
     fontFamily: 'var(--font-display)',
     fontWeight: 600,
-    color: 'var(--accent)',
+    color: 'var(--ink)',
     margin: 0,
   },
 };

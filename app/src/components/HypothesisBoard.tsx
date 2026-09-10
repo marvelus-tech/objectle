@@ -131,7 +131,7 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 'var(--space-4)',
   },
   eyebrow: {
-    color: 'var(--accent)',
+    color: 'var(--neon-b-ink)',
     fontSize: '10px',
     fontWeight: 600,
     letterSpacing: '0.12em',
@@ -147,8 +147,8 @@ const styles: Record<string, React.CSSProperties> = {
   confidence: {
     padding: '5px 8px',
     borderRadius: '999px',
-    background: 'var(--accent-subtle)',
-    color: 'var(--accent)',
+    background: 'var(--neon-b-wash)',
+    color: 'var(--neon-b-ink)',
     fontSize: '10px',
     fontWeight: 600,
     textTransform: 'capitalize',
@@ -170,7 +170,7 @@ const styles: Record<string, React.CSSProperties> = {
     animation: 'candidateEnter 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both',
   },
   rank: {
-    color: 'var(--accent)',
+    color: 'var(--neon-b-ink)',
     fontFamily: 'var(--font-display)',
     fontSize: 'var(--text-lg)',
     fontWeight: 600,
@@ -242,7 +242,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 'var(--text-xs)',
   },
   nextLabel: {
-    color: 'var(--accent)',
+    color: 'var(--neon-a-ink)',
     fontSize: '10px',
     fontWeight: 600,
     letterSpacing: '0.08em',

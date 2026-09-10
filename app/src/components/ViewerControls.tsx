@@ -45,6 +45,7 @@ export default function ViewerControls() {
         <div style={styles.buttonGrid}>
           <button
             onClick={() => handleRotate('y', -rotationStep)}
+            className="btn-ghost"
             style={styles.button}
             disabled={!canRotate}
             title="Rotate left"
@@ -53,6 +54,7 @@ export default function ViewerControls() {
           </button>
           <button
             onClick={() => handleRotate('y', rotationStep)}
+            className="btn-ghost"
             style={styles.button}
             disabled={!canRotate}
             title="Rotate right"
@@ -61,6 +63,7 @@ export default function ViewerControls() {
           </button>
           <button
             onClick={() => handleRotate('x', -rotationStep)}
+            className="btn-ghost"
             style={styles.button}
             disabled={!canRotate}
             title="Rotate up"
@@ -69,6 +72,7 @@ export default function ViewerControls() {
           </button>
           <button
             onClick={() => handleRotate('x', rotationStep)}
+            className="btn-ghost"
             style={styles.button}
             disabled={!canRotate}
             title="Rotate down"
@@ -83,6 +87,7 @@ export default function ViewerControls() {
         <div style={styles.zoomControls}>
           <button
             onClick={() => handleZoom(zoomLevel - 1)}
+            className="btn-ghost"
             style={styles.button}
             disabled={zoomLevel <= 0}
             title="Zoom out"
@@ -92,6 +97,7 @@ export default function ViewerControls() {
           <span style={styles.zoomDisplay}>{zoomLevel + 1} / {maxZoom + 1}</span>
           <button
             onClick={() => handleZoom(zoomLevel + 1)}
+            className="btn-ghost"
             style={styles.button}
             disabled={zoomLevel >= maxZoom}
             title="Zoom in"
@@ -122,7 +128,7 @@ const styles: Record<string, React.CSSProperties> = {
   container: {
     padding: 'var(--space-5)',
     background: 'var(--surface)',
-    borderRadius: 'var(--radius-lg)',
+    borderRadius: 'var(--radius-xl)',
     boxShadow: 'var(--shadow-sm)',
     border: `1px solid var(--border-subtle)`,
   },
@@ -145,9 +151,6 @@ const styles: Record<string, React.CSSProperties> = {
   },
   button: {
     padding: 'var(--space-3) var(--space-4)',
-    background: 'var(--accent)',
-    color: 'white',
-    border: 'none',
     borderRadius: 'var(--radius-md)',
     fontSize: 'var(--text-sm)',
     fontFamily: 'var(--font-ui)',

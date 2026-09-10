@@ -153,7 +153,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 'var(--radius-xl)',
     padding: 'var(--space-6)',
     boxShadow: 'var(--shadow-lg)',
-    border: `2px solid var(--accent)`,
+    border: `1px solid var(--border)`,
     animation: 'fadeScaleIn 220ms ease-out',
   },
   heading: {
@@ -244,7 +244,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 'var(--space-4)',
     background: 'var(--info-bg)',
     borderRadius: 'var(--radius-md)',
-    border: `2px solid var(--accent-border)`,
+    border: `1px solid var(--border)`,
   },
   result: {
     margin: `var(--space-3) 0`,
