@@ -1,5 +1,6 @@
 import React from 'react';
 import { useGameStore } from '../lib/store';
+import { countWrong, maxZoomFor } from '../../../shared/progression';
 
 /**
  * Progression Chrome - Shows Heardle-style zoom locks and reveal tier
@@ -8,11 +9,12 @@ import { useGameStore } from '../lib/store';
 export default function ProgressionChrome() {
   const guesses = useGameStore(state => state.guesses);
   const won = useGameStore(state => state.won);
-  const lost = useGameStore(state => state.lost);
+  const gameOver = useGameStore(state => state.gameOver);
+  const tier = useGameStore(state => state.revealTier);
+  const lost = gameOver && !won;
   
-  const wrongGuesses = guesses.filter(g => !g.correct).length;
-  const maxZoom = Math.min(wrongGuesses, 3);
-  const revealTier = Math.min(wrongGuesses + 1, 4);
+  const maxZoom = maxZoomFor(countWrong(guesses));
+  const revealTier = tier + 1;
   
   const zoomLocks = [0, 1, 2, 3];
   

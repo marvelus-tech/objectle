@@ -14,10 +14,15 @@ const getAPIBase = () => {
   return 'https://objectle-worker-demo.marvelus.workers.dev/api';
 };
 
-const API_BASE = getAPIBase();
+export const API_BASE = getAPIBase();
+
+/** Absolute API origin, e.g. "https://objectle-worker-demo.marvelus.workers.dev/api" (agents need a full URL). */
+export const API_BASE_ABSOLUTE = new URL(API_BASE, window.location.href).toString().replace(/\/$/, '');
 
 // Track if Worker is available
 let workerAvailable: boolean | null = null;
+
+export const isWorkerAvailable = () => workerAvailable === true;
 
 export interface DailyChallengeResponse {
   date: string;

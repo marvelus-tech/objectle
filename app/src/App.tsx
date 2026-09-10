@@ -9,9 +9,11 @@ import AgentPanel from './components/AgentPanel';
 import ToolLog from './components/ToolLog';
 import PassCard from './components/PassCard';
 import ProgressionChrome from './components/ProgressionChrome';
+import StageEffects from './components/StageEffects';
 import { useGameStore } from './lib/store';
-import { api } from './lib/api';
+import { api, isWorkerAvailable } from './lib/api';
 import { registerWebMCPTools } from './lib/webmcp';
+import { resolveRoomCode, startRoomSync } from './lib/room';
 
 export default function App() {
   const initGame = useGameStore(state => state.initGame);
@@ -20,11 +22,19 @@ export default function App() {
   const error = useGameStore(state => state.error);
   const setLoading = useGameStore(state => state.setLoading);
   const setError = useGameStore(state => state.setError);
+  const setRoom = useGameStore(state => state.setRoom);
   
-  // Load daily challenge and register WebMCP tools on mount
+  // Load daily challenge, register WebMCP tools, then join the live room
   useEffect(() => {
-    loadDailyChallenge();
-    registerWebMCPTools();
+    let stopSync: (() => void) | undefined;
+    loadDailyChallenge().then(() => {
+      registerWebMCPTools();
+      const code = resolveRoomCode();
+      // Rooms need the Worker; without it we stay in local-only mode
+      if (isWorkerAvailable()) stopSync = startRoomSync(code);
+      else setRoom(code, false);
+    });
+    return () => stopSync?.();
   }, []);
   
   const loadDailyChallenge = async () => {
@@ -84,6 +94,7 @@ export default function App() {
           <div style={styles.viewerWrapper}>
             <div style={styles.viewer}>
               <ObjectViewer objectKey={objectKey} />
+              <StageEffects />
             </div>
             <div style={styles.controls}>
               <ViewerControls />

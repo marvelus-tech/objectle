@@ -1,20 +1,26 @@
 import React from 'react';
 import { useGameStore } from '../lib/store';
+import { callWebMCPTool } from '../lib/webmcp';
+import { countWrong, maxZoomFor } from '../../../shared/progression';
 
 /**
  * Control panel for rotating and zooming the 3D object
  * Implements GeoGuessr-style verb gating
+ *
+ * Buttons run the same tools agents use, so host actions show up in the
+ * timeline and are visible to connected agents via read_view.
  */
 export default function ViewerControls() {
-  const rotate = useGameStore(state => state.rotate);
-  const zoom = useGameStore(state => state.zoom);
   const zoomLevel = useGameStore(state => state.zoomLevel);
   const revealTier = useGameStore(state => state.revealTier);
   const guesses = useGameStore(state => state.guesses);
   
-  // Gating: early rotation is limited, zoom unlocks progressively
-  const canRotate = true; // Always allow some rotation
-  const maxZoom = Math.min(revealTier + 1, 3);
+  const rotate = (axis: 'x' | 'y' | 'z', degrees: number) => void callWebMCPTool('rotate_object', { axis, degrees });
+  const zoom = (level: number) => void callWebMCPTool('zoom', { level });
+  
+  // Gating: rotation is always free, zoom unlocks one level per wrong guess
+  const canRotate = true;
+  const maxZoom = maxZoomFor(countWrong(guesses));
   const rotationStep = revealTier >= 2 ? 30 : 15; // Larger steps when more revealed
   
   return (

@@ -19,53 +19,63 @@ export default function GuessHistory() {
     <div style={styles.container}>
       <h3 style={styles.heading}>Guess History</h3>
       <div style={styles.list}>
-        {guesses.map((guess) => (
-          <div key={guess.guessNumber} style={styles.guessItem}>
-            <div style={styles.guessHeader}>
-              <span style={styles.guessNumber}>#{guess.guessNumber}</span>
-              <span style={{
-                ...styles.guessText,
-                color: guess.correct ? 'var(--success)' : 'var(--error)',
-                fontWeight: guess.correct ? 600 : 400,
-              }}>
-                {guess.guessText}
-              </span>
-              {guess.correct && <span style={styles.checkmark}>✓</span>}
-            </div>
-            
-            {guess.facets && (
-              <div style={styles.facets}>
-                <FacetBadge
-                  label="Category"
-                  value={guess.facets.category.value}
-                  match={guess.facets.category.match}
-                />
-                <FacetBadge
-                  label="Material"
-                  value={guess.facets.material.value}
-                  match={guess.facets.material.match}
-                />
-                <FacetBadge
-                  label="Scale"
-                  value={guess.facets.scale.value}
-                  match={guess.facets.scale.match}
-                />
+        {guesses.slice().reverse().map((guess, i) => {
+          const isLatest = i === 0;
+          return (
+            <div
+              key={guess.guessNumber}
+              style={{
+                ...styles.guessItem,
+                animation: isLatest ? 'slideInFade 220ms ease-out both' : undefined,
+              }}
+            >
+              <div style={styles.guessHeader}>
+                <span style={styles.guessNumber}>#{guess.guessNumber}</span>
+                <span style={{
+                  ...styles.guessText,
+                  color: guess.correct ? 'var(--success)' : 'var(--error)',
+                  fontWeight: guess.correct ? 600 : 400,
+                }}>
+                  {guess.guessText}
+                </span>
+                {guess.correct && <span style={styles.checkmark}>✓</span>}
               </div>
-            )}
-          </div>
-        ))}
+              
+              {guess.facets && (
+                <div style={styles.facets}>
+                  {(['category', 'material', 'scale'] as const).map((facet, index) => (
+                    <FacetBadge
+                      key={facet}
+                      label={facet}
+                      value={guess.facets![facet].value}
+                      match={guess.facets![facet].match}
+                      // Newest guess: chips land one after another (Wordle tile rhythm)
+                      delayMs={isLatest ? 120 + index * 110 : undefined}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function FacetBadge({ label, value, match }: { label: string; value: string; match: boolean }) {
+function FacetBadge({ label, value, match, delayMs }: { label: string; value: string; match: boolean; delayMs?: number }) {
+  const animation = delayMs === undefined
+    ? undefined
+    : match
+      ? `slideInFade 200ms ease-out ${delayMs}ms both, popScale 240ms cubic-bezier(0.34, 1.56, 0.64, 1) ${delayMs + 200}ms`
+      : `slideInFade 200ms ease-out ${delayMs}ms both`;
   return (
     <div style={{
       ...styles.facetBadge,
       background: match ? 'var(--success-bg)' : 'var(--error-bg)',
       borderColor: match ? 'var(--success)' : 'var(--error)',
       color: match ? 'var(--success)' : 'var(--error)',
+      animation,
     }}>
       <div style={styles.facetLabel}>{label}</div>
       <div style={styles.facetValue}>{value}</div>

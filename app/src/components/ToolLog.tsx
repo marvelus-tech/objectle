@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { subscribeToToolExecutions, ToolExecution } from '../lib/webmcp';
+import { useGameStore } from '../lib/store';
+
+const AGENT_ACTIVE_WINDOW_MS = 10_000;
 
 /**
  * Dual Watch UI: Tool observation log
@@ -8,11 +11,29 @@ import { subscribeToToolExecutions, ToolExecution } from '../lib/webmcp';
 export default function ToolLog() {
   const [executions, setExecutions] = useState<ToolExecution[]>([]);
   const [expanded, setExpanded] = useState(true);
+  const roomCode = useGameStore(state => state.roomCode);
+  const roomConnected = useGameStore(state => state.roomConnected);
+  const agentLastSeenAt = useGameStore(state => state.agentLastSeenAt);
+  const [, forceTick] = useState(0);
   
   useEffect(() => {
     const unsubscribe = subscribeToToolExecutions(setExecutions);
-    return unsubscribe;
+    // Re-render every few seconds so "Agent live" can fall back to idle
+    const interval = setInterval(() => forceTick(t => t + 1), 3000);
+    return () => {
+      unsubscribe();
+      clearInterval(interval);
+    };
   }, []);
+  
+  const agentLive = agentLastSeenAt !== null && Date.now() - agentLastSeenAt < AGENT_ACTIVE_WINDOW_MS;
+  const status = !roomCode
+    ? null
+    : !roomConnected
+      ? { label: 'Offline (local mode)', color: 'var(--ink-muted)', pulse: false }
+      : agentLive
+        ? { label: 'Agent live', color: 'white', pulse: true }
+        : { label: `Room ${roomCode}`, color: 'rgba(255,255,255,0.7)', pulse: false };
   
   return (
     <div style={styles.container}>
@@ -20,7 +41,19 @@ export default function ToolLog() {
         <span style={styles.title}>
           Tool Timeline ({executions.length})
         </span>
-        <span style={styles.toggle}>{expanded ? '▼' : '▲'}</span>
+        <span style={styles.headerRight}>
+          {status && (
+            <span style={styles.status}>
+              <span style={{
+                ...styles.dot,
+                background: status.color,
+                animation: status.pulse ? 'liveDot 1.6s ease-out infinite' : 'none',
+              }} />
+              {status.label}
+            </span>
+          )}
+          <span style={styles.toggle}>{expanded ? '▼' : '▲'}</span>
+        </span>
       </div>
       
       {expanded && (
@@ -29,7 +62,9 @@ export default function ToolLog() {
             <div style={styles.emptyState}>
               <p style={styles.emptyText}>Waiting for an agent…</p>
               <p style={styles.emptySubtext}>
-                Tool calls will appear here as agents play
+                {roomConnected && roomCode
+                  ? `Room ${roomCode} is open. Every tool call an agent makes will appear here and animate the stage.`
+                  : 'Tool calls will appear here as agents play'}
               </p>
             </div>
           ) : (
@@ -42,12 +77,20 @@ export default function ToolLog() {
                   ? `3px solid var(--success)`
                   : `3px solid var(--error)`,
                 animation: 'slideInFade 200ms ease-out',
-                animationDelay: `${index * 40}ms`,
+                animationDelay: `${Math.min(index, 8) * 40}ms`,
                 animationFillMode: 'both',
               }}
             >
               <div style={styles.logHeader}>
-                <span style={styles.toolName}>{exec.tool}</span>
+                <span style={styles.toolName}>
+                  <span style={{
+                    ...styles.actorChip,
+                    background: exec.actor === 'agent' ? 'var(--accent)' : 'var(--ink-secondary)',
+                  }}>
+                    {exec.actor === 'agent' ? 'Agent' : 'You'}
+                  </span>
+                  {exec.tool}
+                </span>
                 <span style={styles.timestamp}>
                   {new Date(exec.timestamp).toLocaleTimeString()}
                 </span>
@@ -104,6 +147,37 @@ const styles: Record<string, React.CSSProperties> = {
   },
   toggle: {
     fontSize: 'var(--text-sm)',
+  },
+  headerRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 'var(--space-4)',
+  },
+  status: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 'var(--space-2)',
+    fontSize: 'var(--text-xs)',
+    fontFamily: 'var(--font-ui)',
+    fontWeight: 500,
+    letterSpacing: '0.03em',
+  },
+  dot: {
+    width: '8px',
+    height: '8px',
+    borderRadius: '50%',
+    display: 'inline-block',
+  },
+  actorChip: {
+    display: 'inline-block',
+    color: 'white',
+    fontSize: '10px',
+    fontWeight: 600,
+    letterSpacing: '0.04em',
+    padding: '1px 6px',
+    borderRadius: '999px',
+    marginRight: 'var(--space-2)',
+    verticalAlign: 'middle',
   },
   logContainer: {
     maxHeight: '400px',

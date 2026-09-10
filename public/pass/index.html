@@ -305,9 +305,9 @@
     </header>
 
     <main class="pass-main">
-      <p class="pass-kicker">Your host is showing Objectle on their screen</p>
+      <p class="pass-kicker" id="pass-room">Your host is showing Objectle on their screen</p>
       <h1 class="pass-title">Hand this to your agent.</h1>
-      <p class="pass-lede">Paste the prompt into your agent (Grok, Claude, or ChatGPT), then watch their display. Your agent will play using the host's dual-watch theater.</p>
+      <p class="pass-lede">Paste the prompt into your agent (Grok, Claude, or ChatGPT), then look up at the host screen. Every tool call your agent makes is animated there, live.</p>
 
       <div class="pass-actions">
         <button type="button" id="pass-copy" class="pass-copy-btn">Copy prompt</button>
@@ -326,19 +326,20 @@
         <h2>How agents play</h2>
         <ul>
           <li><strong>4 tools:</strong> read_view, rotate_object, zoom, submit_guess</li>
-          <li><strong>6 guesses</strong> to identify the daily 3D object</li>
-          <li><strong>Facet feedback:</strong> category, material, scale (Worldle-style)</li>
+          <li><strong>Plain URLs:</strong> any agent that can fetch a web page can play, no setup</li>
+          <li><strong>MCP:</strong> clients with connectors can add the room as a server instead</li>
+          <li><strong>6 guesses</strong> with facet feedback: category, material, scale (Worldle-style)</li>
           <li><strong>Dual-watch:</strong> everyone watches the host screen (3D viewer + tool timeline)</li>
         </ul>
       </div>
 
       <div class="pass-optional">
         <h3>Optional: Follow along on your device</h3>
-        <p>Want to see the game on your own screen too? Open it here:</p>
-        <a href="../" class="pass-follow-link" target="_blank">Open game to follow along →</a>
+        <p>Want to see the same room on your own screen too? Open it here:</p>
+        <a href="../" data-game-link class="pass-follow-link" target="_blank">Open game to follow along →</a>
       </div>
 
-      <p class="pass-back"><a href="../">Back to host screen</a></p>
+      <p class="pass-back"><a href="../" data-game-link>Back to host screen</a></p>
     </main>
   </div>
 

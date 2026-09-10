@@ -1,16 +1,13 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../lib/store';
-import { api } from '../lib/api';
+import { runTool } from '../lib/webmcp';
 
 export default function GuessInput() {
   const [input, setInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
   
-  const playerId = useGameStore(state => state.playerId);
   const guesses = useGameStore(state => state.guesses);
   const gameOver = useGameStore(state => state.gameOver);
-  const addGuess = useGameStore(state => state.addGuess);
-  const setGameOver = useGameStore(state => state.setGameOver);
   const setError = useGameStore(state => state.setError);
   
   const remainingGuesses = 6 - guesses.length;
@@ -24,19 +21,9 @@ export default function GuessInput() {
     setError(null);
     
     try {
-      const result = await api.checkGuess(playerId, input.trim());
-      
-      addGuess({
-        guessNumber: result.guessNumber,
-        guessText: input.trim(),
-        correct: result.correct,
-        facets: result.facets,
-      });
-      
-      if (result.gameOver) {
-        setGameOver(result.won);
-      }
-      
+      // Same path as agents: the room (or local fallback) updates the store for us
+      const result = await runTool('submit_guess', { name: input.trim() }, 'host');
+      if (!result.success) throw new Error(result.text);
       setInput('');
     } catch (error) {
       console.error('Failed to submit guess:', error);
