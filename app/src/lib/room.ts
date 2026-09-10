@@ -1,187 +1,242 @@
-import { create } from 'zustand';
-import { useGameStore } from './store';
+/**
+ * Live room client.
+ *
+ * The host screen (this page) and the agent never talk directly. Both talk to the
+ * Worker's RoomDO for a shared room code. This module:
+ *   1. picks the room code (from ?room=, else generates one and puts it in the URL)
+ *   2. polls the room's event log and folds new events into the store
+ *   3. lets in-page actions (buttons, AgentPanel, WebMCP) run through the same room
+ */
+
+import { API_BASE, API_BASE_ABSOLUTE } from './api';
+import { useGameStore, type Actor, type Guess, type LiveAction, type RoomSnapshot } from './store';
 import {
-  setTheaterEventPublisher,
-  TheaterEvent,
-  ToolTheaterEvent,
+  sanitizePublishedStatus,
   useTheaterStore,
+  type TheaterSource,
 } from './theater';
 
-type RoomConnection = 'connecting' | 'connected' | 'reconnecting' | 'offline';
-
-interface RoomState {
-  roomId: string | null;
-  connection: RoomConnection;
-  role: 'host' | 'participant';
-  setRoom: (
-    roomId: string,
-    role: RoomState['role'],
-    connection?: RoomConnection,
-  ) => void;
-  setConnection: (connection: RoomConnection) => void;
+export interface RoomEvent {
+  seq: number;
+  ts: number;
+  actor: Actor;
+  tool: LiveAction['tool'];
+  args: Record<string, unknown>;
+  result: string;
+  success: boolean;
 }
 
-const WORKER_API = 'https://objectle-worker-demo.marvelus.workers.dev/api';
-const API_BASE = import.meta.env.DEV ? '/api' : WORKER_API;
-const locallyPublishedIds = new Set<string>();
-
-let socket: WebSocket | null = null;
-let reconnectTimer: number | null = null;
-let activeRoomId: string | null = null;
-let intentionallyClosed = false;
-let initializationPromise: Promise<void> | null = null;
-
-export const useRoomStore = create<RoomState>(set => ({
-  roomId: null,
-  connection: 'connecting',
-  role: 'host',
-  setRoom: (roomId, role, connection = 'connecting') =>
-    set({ roomId, role, connection }),
-  setConnection: connection => set({ connection }),
-}));
-
-export function initializeTheaterRoom() {
-  initializationPromise ??= setupTheaterRoom();
-  return initializationPromise;
+export interface ToolCallResponse {
+  text: string;
+  success: boolean;
+  state: RoomSnapshot;
+  event: RoomEvent;
 }
 
-async function setupTheaterRoom() {
+type EventListener = (event: RoomEvent) => void;
+
+const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no 0/O/1/I/L lookalikes
+const POLL_ACTIVE_MS = 600;
+const POLL_IDLE_MS = 1500;
+const AGENT_ACTIVE_WINDOW_MS = 10_000;
+
+let lastSeq = 0;
+const listeners = new Set<EventListener>();
+
+function generateCode(): string {
+  return Array.from({ length: 4 }, () => CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)]).join('');
+}
+
+/** Room code from the URL, else a new one written into the URL so a refresh keeps the room. */
+export function resolveRoomCode(): string {
   const url = new URL(window.location.href);
-  let roomId = url.searchParams.get('room');
-  let role: RoomState['role'] = 'participant';
+  const fromUrl = (url.searchParams.get('room') ?? '').toUpperCase();
+  if (/^[A-Z0-9]{4,8}$/.test(fromUrl)) return fromUrl;
 
-  if (!roomId) {
-    const response = await fetch(`${API_BASE}/rooms`, { method: 'POST' });
-    if (!response.ok) throw new Error('Could not create a theater room.');
-    const body = await response.json() as { roomId: string };
-    roomId = body.roomId;
-    role = 'host';
-    url.searchParams.set('room', roomId);
-    window.history.replaceState({}, '', url);
-  }
-
-  useRoomStore.getState().setRoom(roomId, role);
-  useGameStore.getState().setPlayerId(`room_${roomId}`);
-  connectToRoom(roomId);
+  const code = generateCode();
+  url.searchParams.set('room', code);
+  window.history.replaceState(null, '', url.toString());
+  return code;
 }
 
-export function disconnectTheaterRoom() {
-  intentionallyClosed = true;
-  setTheaterEventPublisher(null);
-  if (reconnectTimer !== null) window.clearTimeout(reconnectTimer);
-  reconnectTimer = null;
-  socket?.close(1000, 'Page closed');
-  socket = null;
+export const roomApiUrl = (code: string, path = '') => `${API_BASE}/room/${code}${path}`;
+export const roomManualUrl = (code: string) => `${API_BASE_ABSOLUTE}/room/${code}`;
+export const roomMcpUrl = (code: string) => `${API_BASE_ABSOLUTE.replace(/\/api$/, '')}/mcp/${code}`;
+
+/** Public URL of the pass page for this room (what the QR encodes). */
+export function passPageUrl(code: string): string {
+  return new URL(`${import.meta.env.BASE_URL}pass/?room=${code}`, window.location.href).toString();
 }
 
-function connectToRoom(roomId: string) {
-  intentionallyClosed = false;
-  activeRoomId = roomId;
-  useRoomStore.getState().setConnection(
-    socket ? 'reconnecting' : 'connecting',
-  );
+export function onRoomEvent(listener: EventListener): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
 
-  const workerUrl = new URL(WORKER_API);
-  const websocketBase = import.meta.env.DEV
-    ? 'ws://localhost:8787/api'
-    : `${workerUrl.protocol === 'https:' ? 'wss:' : 'ws:'}//${workerUrl.host}${workerUrl.pathname}`;
-  socket = new WebSocket(`${websocketBase}/rooms/${encodeURIComponent(roomId)}/watch`);
-
-  socket.addEventListener('open', () => {
-    useRoomStore.getState().setConnection('connected');
+/** Run a tool through the room so the agent's read_view sees the same state the host sees. */
+export async function callRoomTool(
+  code: string,
+  tool: LiveAction['tool'],
+  args: Record<string, unknown>,
+  actor: Actor
+): Promise<ToolCallResponse> {
+  const res = await fetch(`${roomApiUrl(code, `/tools/${tool}`)}?actor=${actor}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(args),
+    signal: AbortSignal.timeout(8000),
   });
+  if (res.status >= 500) throw new Error(`Room call failed (${res.status})`);
+  const data = (await res.json()) as ToolCallResponse;
+  ingest(data.state, [data.event]);
+  return data;
+}
 
-  socket.addEventListener('message', message => {
-    if (typeof message.data !== 'string') return;
+/**
+ * Fold a snapshot + new events into the store exactly once per event (dedupe by seq).
+ * `replay` is true for the first poll after page load: the timeline is backfilled
+ * but no captions/confetti fire for things that happened before we were watching.
+ */
+function ingest(state: RoomSnapshot, events: RoomEvent[], replay = false): void {
+  const store = useGameStore.getState();
+  const fresh = events.filter(e => e.seq > lastSeq).sort((a, b) => a.seq - b.seq);
+  store.applySnapshot(state);
+  if (fresh.length === 0) return;
 
-    try {
-      const payload = JSON.parse(message.data) as
-        | { type: 'event'; event: TheaterEvent }
-        | { type: 'history'; events: TheaterEvent[] };
+  lastSeq = fresh[fresh.length - 1].seq;
 
-      const events = payload.type === 'history' ? payload.events : [payload.event];
-      events.forEach(event => {
-        if (!locallyPublishedIds.has(event.id)) applyRemoteEvent(event);
-      });
-    } catch {
-      // Ignore malformed room messages. The Worker validates published events.
+  for (const event of fresh) listeners.forEach(l => l(event));
+  ingestTheater(fresh);
+  // Only the newest event drives the stage caption/effects
+  if (!replay) store.setLastAction(toLiveAction(fresh[fresh.length - 1], state.guesses));
+}
+
+function ingestTheater(events: RoomEvent[]): void {
+  const theater = useTheaterStore.getState();
+  for (const event of events) {
+    const source: TheaterSource = event.actor === 'agent' ? 'agent' : 'human';
+    if (event.tool === 'publish_status') {
+      try {
+        const status = sanitizePublishedStatus(event.args);
+        theater.ingestEvent({
+          id: `room-${event.seq}`,
+          kind: 'status',
+          timestamp: event.ts,
+          source,
+          ...status,
+        });
+      } catch {
+        theater.ingestEvent({
+          id: `room-${event.seq}`,
+          kind: 'status',
+          timestamp: event.ts,
+          source,
+          headline: String(event.args.headline ?? 'Working theory'),
+        });
+      }
+      continue;
     }
-  });
 
-  socket.addEventListener('close', () => {
-    if (intentionallyClosed) return;
-    useRoomStore.getState().setConnection('reconnecting');
-    reconnectTimer = window.setTimeout(() => {
-      if (activeRoomId) connectToRoom(activeRoomId);
-    }, 1500);
-  });
-
-  socket.addEventListener('error', () => {
-    useRoomStore.getState().setConnection('offline');
-  });
-
-  setTheaterEventPublisher(event => {
-    locallyPublishedIds.add(event.id);
-    if (locallyPublishedIds.size > 100) {
-      const oldest = locallyPublishedIds.values().next().value;
-      if (oldest) locallyPublishedIds.delete(oldest);
-    }
-
-    const message = JSON.stringify({ type: 'event', event });
-    if (socket?.readyState === WebSocket.OPEN) {
-      socket.send(message);
-      return;
-    }
-
-    void fetch(`${API_BASE}/rooms/${encodeURIComponent(roomId)}/events`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: message,
-    }).catch(() => {
-      useRoomStore.getState().setConnection('offline');
+    theater.ingestEvent({
+      id: `room-${event.seq}`,
+      kind: 'tool',
+      timestamp: event.ts,
+      source,
+      tool: event.tool,
+      phase: 'completed',
+      args: event.args,
+      result: event.result,
+      success: event.success,
     });
-  });
+  }
 }
 
-function applyRemoteEvent(event: TheaterEvent) {
-  useTheaterStore.getState().ingestEvent(event);
-  if (event.kind !== 'tool' || event.phase !== 'completed' || !event.success) return;
+export function toLiveAction(event: RoomEvent, guesses: Guess[]): LiveAction {
+  const who = event.actor === 'agent' ? 'Agent' : 'You';
+  let caption: string;
+  let guess: Guess | undefined;
 
-  const game = useGameStore.getState();
-
-  if (event.tool === 'rotate_object') {
-    const axis = event.args.axis;
-    const degrees = Number(event.args.degrees);
-    if ((axis === 'x' || axis === 'y' || axis === 'z') && Number.isFinite(degrees)) {
-      game.rotate(axis, degrees);
+  switch (event.tool) {
+    case 'read_view':
+      caption = `${who} ${event.actor === 'agent' ? 'is' : 'are'} studying the view`;
+      break;
+    case 'rotate_object': {
+      const deg = Number(event.args.degrees) || 0;
+      const axis = String(event.args.axis);
+      const dir = axis === 'y' ? (deg > 0 ? 'right' : 'left') : axis === 'x' ? (deg > 0 ? 'down' : 'up') : deg > 0 ? 'clockwise' : 'counter-clockwise';
+      caption = event.success ? `${who} turned the object ${Math.abs(deg)}° ${dir}` : `${who} tried an invalid rotation`;
+      break;
     }
+    case 'zoom':
+      caption = event.success
+        ? `${who} zoomed to level ${Number(event.args.level) + 1}`
+        : `${who} tried a locked zoom level`;
+      break;
+    case 'submit_guess': {
+      const name = String(event.args.name ?? '');
+      guess = guesses.find(g => g.guessText.toLowerCase() === name.toLowerCase() && g.guessNumber === guesses.length);
+      if (!event.success) caption = `${who} could not submit "${name}"`;
+      else if (guess?.correct) caption = `${who} guessed "${name}" and got it!`;
+      else caption = `${who} guessed "${name}"`;
+      break;
+    }
+    case 'publish_status':
+      caption = `${who} shared: ${String(event.args.headline ?? 'working theory')}`;
+      break;
   }
 
-  if (event.tool === 'zoom') {
-    const level = Number(event.args.level);
-    if (Number.isFinite(level)) game.zoom(level);
-  }
-
-  if (event.tool === 'submit_guess' && event.detail) {
-    applyRemoteGuess(event);
-  }
+  return {
+    id: `${event.seq}`,
+    ts: event.ts,
+    actor: event.actor,
+    tool: event.tool,
+    args: event.args,
+    success: event.success,
+    caption,
+    guess,
+  };
 }
 
-function applyRemoteGuess(event: ToolTheaterEvent) {
-  if (!event.detail) return;
-  const game = useGameStore.getState();
-  if (game.guesses.some(guess => guess.guessNumber === event.detail?.guessNumber)) {
-    return;
-  }
+/**
+ * Start polling the room. Poll cadence tightens while an agent is active so the
+ * screen reacts within ~0.6s of a tool call, and relaxes when idle.
+ */
+export function startRoomSync(code: string): () => void {
+  let stopped = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let failures = 0;
+  let firstPoll = true;
+  const store = useGameStore.getState();
+  store.setRoom(code, false);
 
-  game.addGuess({
-    guessNumber: event.detail.guessNumber,
-    guessText: event.detail.guess,
-    correct: event.detail.correct,
-    facets: event.detail.facets,
-  });
+  const tick = async () => {
+    if (stopped) return;
+    let delay = POLL_IDLE_MS;
+    try {
+      const res = await fetch(`${roomApiUrl(code, '/events')}?since=${lastSeq}&host=1`, {
+        signal: AbortSignal.timeout(6000),
+      });
+      if (!res.ok) throw new Error(`events ${res.status}`);
+      const data = (await res.json()) as { state: RoomSnapshot; events: RoomEvent[]; now: number };
+      failures = 0;
+      if (!useGameStore.getState().roomConnected) store.setRoom(code, true);
+      ingest(data.state, data.events, firstPoll);
+      firstPoll = false;
 
-  if (event.detail.correct || event.detail.remaining === 0) {
-    game.setGameOver(event.detail.correct, event.detail.answer);
-  }
+      const agentActive = data.state.lastAgentEventAt !== null && data.now - data.state.lastAgentEventAt < AGENT_ACTIVE_WINDOW_MS;
+      delay = agentActive ? POLL_ACTIVE_MS : POLL_IDLE_MS;
+    } catch (err) {
+      failures += 1;
+      if (failures >= 3 && useGameStore.getState().roomConnected) store.setRoom(code, false);
+      delay = Math.min(POLL_IDLE_MS * failures, 8000);
+      if (failures === 1) console.warn('Room sync hiccup:', err);
+    }
+    timer = setTimeout(tick, delay);
+  };
+
+  void tick();
+  return () => {
+    stopped = true;
+    if (timer) clearTimeout(timer);
+  };
 }

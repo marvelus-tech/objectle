@@ -1,4 +1,4 @@
-/* Objectle agent prompt builder */
+/* Objectle agent prompt builder (static page; mirror of app/src/lib/prompt.ts) */
 (function (global) {
   "use strict";
 
@@ -8,45 +8,51 @@
 
   function gameUrl() {
     if (typeof document === "undefined" || !document.location) return LIVE_GAME;
-    try {
-      var url = new URL(document.location.href);
-      url.hash = "";
-      url.pathname = url.pathname.replace(/pass\/?$/i, "");
-      return url.toString();
-    } catch (error) {
-      return LIVE_GAME;
+    var href = document.location.href.split("#")[0].split("?")[0];
+    if (/pass\/?/i.test(href)) {
+      return href.replace(/pass\/?.*$/i, "") || LIVE_GAME;
     }
+    return href;
   }
 
   function apiUrl() {
     return API;
   }
 
+  /* Room code from ?room=ABCD (the host screen puts it in the QR). */
+  function roomCode() {
+    if (typeof document === "undefined" || !document.location) return null;
+    var match = /[?&]room=([A-Za-z0-9]{4,8})/.exec(document.location.search);
+    return match ? match[1].toUpperCase() : null;
+  }
+
+  function manualUrl(code) {
+    return apiUrl() + "/room/" + code;
+  }
+
+  function mcpUrl(code) {
+    return apiUrl().replace(/\/api$/, "") + "/mcp/" + code;
+  }
+
   function agentText() {
-    var game = gameUrl();
-    var api = apiUrl();
+    var code = roomCode();
+    if (!code) {
+      return (
+        "You are playing Objectle, a daily 3D object guessing game.\n\n" +
+        "Ask your human for the 4-letter room code shown on their screen, then fetch\n" +
+        apiUrl() + "/room/<CODE>\n" +
+        "and follow the manual it returns. Host screen: " + gameUrl()
+      );
+    }
     return (
-      "You are playing Objectle. Your human is watching the game on their host screen.\n\n" +
-      "Shared theater URL (open this): " + game + "\n" +
-      "Worker API: " + api + "\n\n" +
-      "How to play:\n" +
-      "1. Open the shared theater URL above. Keep its room parameter so your actions appear on the host screen.\n" +
-      "2. Use the WebMCP / page modelContext tools to play:\n" +
-      "   - read_view() - See current 3D view description\n" +
-      "   - rotate_object(axis, degrees) - Rotate for different angles (x/y/z, ±15-45°)\n" +
-      "   - zoom(level) - Zoom closer (0-3, unlocks with wrong guesses)\n" +
-      "   - publish_status(headline, rationale, candidates, next, confidence) - Share a concise public working theory\n" +
-      "   - submit_guess(name) - Submit your guess\n" +
-      "3. You have 6 guesses. Facet feedback shows category/material/scale matches.\n" +
-      "4. Your human is watching the 3D viewer and agent theater on their screen as you play.\n" +
-      "5. Use publish_status before each guess and after interpreting feedback. Share only a short public summary, never private chain-of-thought.\n\n" +
-      "Strategy:\n" +
-      "- Start with read_view() to see the silhouette\n" +
-      "- Rotate around y-axis to see different angles\n" +
-      "- Keep up to three candidates with confidence percentages\n" +
-      "- Make informed guesses based on shape, facets, and details\n" +
-      "- Zoom unlocks progressively (Heardle-style)\n\n" +
-      "Play now!"
+      "You are playing Objectle, a daily 3D object guessing game. A human is watching your moves live on a big screen (room " + code + ").\n\n" +
+      "Step 1: Fetch this URL and read it. It is your room manual with the exact tool URLs:\n" +
+      manualUrl(code) + "\n\n" +
+      "Step 2: Play by fetching the tool URLs (plain GET requests). Every fetch is shown instantly on the human's screen, so narrate in one short sentence what you are doing between calls.\n" +
+      "  read_view, rotate_object(axis, degrees), zoom(level), publish_status(headline), submit_guess(name)\n" +
+      "  6 guesses. Facet feedback after each guess: category, material, scale.\n\n" +
+      "If your client supports MCP connectors, add " + mcpUrl(code) + " (Streamable HTTP, no auth) to get the same tools natively.\n\n" +
+      "Start now with read_view."
     );
   }
 
@@ -87,6 +93,9 @@
   global.ObjectlePrompt = {
     apiUrl: apiUrl,
     gameUrl: gameUrl,
+    roomCode: roomCode,
+    manualUrl: manualUrl,
+    mcpUrl: mcpUrl,
     agentText: agentText,
     deepLinks: deepLinks,
     copyText: copyText,

@@ -10,6 +10,14 @@
     var text = prompt.agentText();
     var block = $("pass-prompt");
     if (block) block.textContent = text;
+    var code = prompt.roomCode();
+    var codeEl = $("pass-room");
+    if (codeEl) codeEl.textContent = code ? "Room " + code : "No room code in this link";
+    /* Keep "follow along" links pointed at the same room as the host screen */
+    var follow = document.querySelectorAll("a[data-game-link]");
+    for (var i = 0; i < follow.length; i++) {
+      follow[i].href = code ? "../?room=" + code : "../";
+    }
     var links = prompt.deepLinks(text);
     var map = { "pass-grok": links.grok, "pass-claude": links.claude, "pass-chatgpt": links.chatgpt };
     Object.keys(map).forEach(function (id) {

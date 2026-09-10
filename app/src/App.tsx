@@ -10,10 +10,11 @@ import ToolLog from './components/ToolLog';
 import PassCard from './components/PassCard';
 import ProgressionChrome from './components/ProgressionChrome';
 import HypothesisBoard from './components/HypothesisBoard';
+import StageEffects from './components/StageEffects';
 import { useGameStore } from './lib/store';
-import { api } from './lib/api';
+import { api, isWorkerAvailable } from './lib/api';
 import { registerWebMCPTools } from './lib/webmcp';
-import { initializeTheaterRoom, useRoomStore } from './lib/room';
+import { resolveRoomCode, startRoomSync } from './lib/room';
 
 export default function App() {
   const initGame = useGameStore(state => state.initGame);
@@ -23,23 +24,25 @@ export default function App() {
   const error = useGameStore(state => state.error);
   const setLoading = useGameStore(state => state.setLoading);
   const setError = useGameStore(state => state.setError);
-  const setRoomConnection = useRoomStore(state => state.setConnection);
-  const roomConnection = useRoomStore(state => state.connection);
-  
-  // Load daily challenge and register WebMCP tools on mount
+  const setRoom = useGameStore(state => state.setRoom);
+  const roomConnected = useGameStore(state => state.roomConnected);
+  const agentLastSeenAt = useGameStore(state => state.agentLastSeenAt);
+
   useEffect(() => {
-    loadDailyChallenge();
-    registerWebMCPTools();
-    void initializeTheaterRoom().catch(error => {
-      console.warn('Theater room unavailable:', error);
-      setRoomConnection('offline');
+    let stopSync: (() => void) | undefined;
+    loadDailyChallenge().then(() => {
+      registerWebMCPTools();
+      const code = resolveRoomCode();
+      if (isWorkerAvailable()) stopSync = startRoomSync(code);
+      else setRoom(code, false);
     });
+    return () => stopSync?.();
   }, []);
-  
+
   const loadDailyChallenge = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const challenge = await api.getDailyChallenge();
       initGame(challenge.date, challenge.objectKey, challenge.visualProfile);
@@ -50,7 +53,7 @@ export default function App() {
       setLoading(false);
     }
   };
-  
+
   if (loading) {
     return (
       <div style={styles.centered}>
@@ -58,7 +61,7 @@ export default function App() {
       </div>
     );
   }
-  
+
   if (error) {
     return (
       <div style={styles.centered}>
@@ -71,7 +74,7 @@ export default function App() {
       </div>
     );
   }
-  
+
   if (!objectKey || !visualProfile) {
     return (
       <div style={styles.centered}>
@@ -79,7 +82,9 @@ export default function App() {
       </div>
     );
   }
-  
+
+  const agentLive = roomConnected && agentLastSeenAt !== null && Date.now() - agentLastSeenAt < 10_000;
+
   return (
     <div className="app-shell" style={styles.app}>
       <header className="theater-header" style={styles.header}>
@@ -87,17 +92,18 @@ export default function App() {
           <span
             style={{
               ...styles.signalDot,
-              background:
-                roomConnection === 'connected'
-                  ? 'var(--neon-a)'
+              background: agentLive
+                ? 'var(--neon-a)'
+                : roomConnected
+                  ? 'var(--accent)'
                   : 'var(--ink-muted)',
-              boxShadow:
-                roomConnection === 'connected'
-                  ? '0 0 0 4px var(--neon-a-soft)'
-                  : '0 0 0 4px var(--accent-subtle)',
+              boxShadow: agentLive
+                ? '0 0 0 4px var(--neon-a-soft)'
+                : '0 0 0 4px var(--accent-subtle)',
+              animation: agentLive ? 'liveDot 1.6s ease-out infinite' : undefined,
             }}
           />
-          {roomConnection === 'connected' ? 'Live theater' : roomConnection}
+          {agentLive ? 'Agent live' : roomConnected ? 'Live theater' : 'Local mode'}
         </span>
         <h1 style={styles.title}>Objectle</h1>
         <p style={styles.subtitle}>A daily 3D object guessing game. Dual-watch theater.</p>
@@ -105,14 +111,14 @@ export default function App() {
           New object daily at midnight
         </span>
       </header>
-      
+
       <main className="theater-main" style={styles.main}>
-        {/* Center Stage: Viewer + Progression */}
         <div className="stage-column" style={styles.stageColumn}>
           <div className="viewer-frame" style={styles.viewerWrapper}>
             <div className="prism-frame">
               <div className="prism-frame__inner viewer-stage" style={styles.viewer}>
                 <ObjectViewer visualProfile={visualProfile} />
+                <StageEffects />
                 <div className="stage-corners" aria-hidden="true" />
               </div>
             </div>
@@ -123,13 +129,12 @@ export default function App() {
           <ProgressionChrome />
           <HypothesisBoard />
         </div>
-        
-        {/* Side Rail: Tool Timeline + Game */}
+
         <div className="side-rail" style={styles.sideColumn}>
           <div className="tool-log-sticky" style={styles.toolLogSection}>
             <ToolLog />
           </div>
-          
+
           <div className="game-section" style={styles.gameSection}>
             <PassCard />
             <GameOver />
@@ -138,16 +143,16 @@ export default function App() {
           </div>
         </div>
       </main>
-      
+
       <ShareModal />
       <AgentPanel />
-      
+
       <footer style={styles.footer}>
         <p style={styles.footerText}>
-          Built with React Three Fiber & Cloudflare Workers | 
-          <a 
-            href="https://github.com/marvelus-tech/objectle" 
-            target="_blank" 
+          Built with React Three Fiber & Cloudflare Workers |
+          <a
+            href="https://github.com/marvelus-tech/objectle"
+            target="_blank"
             rel="noopener noreferrer"
             style={styles.link}
           >

@@ -15,8 +15,8 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "types": ["node", "vite/client"]
+    "types": ["@cloudflare/workers-types", "vite/client"]
   },
-  "include": ["app", "worker", "worker-configuration.d.ts"],
+  "include": ["app", "worker", "shared"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

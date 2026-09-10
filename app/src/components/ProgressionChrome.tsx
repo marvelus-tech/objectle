@@ -1,5 +1,6 @@
 import React from 'react';
 import { useGameStore } from '../lib/store';
+import { countWrong, maxZoomFor } from '../../../shared/progression';
 
 /**
  * Progression Chrome - Shows Heardle-style zoom locks and reveal tier
@@ -9,11 +10,11 @@ export default function ProgressionChrome() {
   const guesses = useGameStore(state => state.guesses);
   const won = useGameStore(state => state.won);
   const gameOver = useGameStore(state => state.gameOver);
-  const revealTier = useGameStore(state => state.revealTier);
+  const tier = useGameStore(state => state.revealTier);
+  const lost = gameOver && !won;
   
-  const wrongGuesses = guesses.filter(g => !g.correct).length;
-  const maxZoom = Math.min(wrongGuesses, 3);
-  const visibleRevealTier = revealTier + 1;
+  const maxZoom = maxZoomFor(countWrong(guesses));
+  const revealTier = tier + 1;
   
   const zoomLocks = [0, 1, 2, 3];
   
@@ -48,10 +49,10 @@ export default function ProgressionChrome() {
           <div 
             style={{
               ...styles.revealFill,
-              width: `${(visibleRevealTier / 4) * 100}%`,
+              width: `${(revealTier / 4) * 100}%`,
             }}
           />
-          <div style={styles.revealText}>{visibleRevealTier}/4</div>
+          <div style={styles.revealText}>{revealTier}/4</div>
         </div>
         <div style={styles.revealLabels}>
           <span style={styles.revealLabelItem}>Silhouette</span>
@@ -61,7 +62,7 @@ export default function ProgressionChrome() {
         </div>
       </div>
       
-      {!won && !gameOver && (
+      {!won && !lost && (
         <div style={styles.hint}>
           <small style={styles.hintText}>
             Wrong guesses unlock zoom and reveal more detail

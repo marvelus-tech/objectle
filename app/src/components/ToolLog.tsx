@@ -24,7 +24,7 @@ export default function ToolLog() {
       >
         <span>
           <span style={styles.eyebrow}>Agent tool timeline</span>
-          <span style={styles.title}>Live director’s log</span>
+          <span style={styles.title}>Live director's log</span>
         </span>
         <span style={styles.count}>Step {events.length}</span>
       </button>
@@ -33,7 +33,7 @@ export default function ToolLog() {
         <div style={styles.logContainer} aria-live="polite">
           {events.length === 0 ? (
             <div style={styles.emptyState}>
-              <p style={styles.emptyText}>Waiting for an agent…</p>
+              <p style={styles.emptyText}>Waiting for an agent...</p>
               <p style={styles.emptySubtext}>
                 Every observation, action, and result will unfold here.
               </p>
